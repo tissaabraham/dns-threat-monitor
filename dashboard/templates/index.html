@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Threat Monitor - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DNS Threat Monitor</h1>
+            <p>Passive Monitoring and Threat Detection in a Home Wi-Fi Network</p>
+        </header>
+
+        <nav class="navbar">
+            <ul>
+                <li><a href="#" class="active">Dashboard</a></li>
+                <li><a href="#logs">Logs</a></li>
+                <li><a href="#alerts">Alerts</a></li>
+                <li><a href="#statistics">Statistics</a></li>
+            </ul>
+        </nav>
+
+        <main>
+            <!-- Statistics Section -->
+            <section id="statistics" class="stats-section">
+                <h2>System Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Queries</h3>
+                        <p id="total-queries">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Alerts</h3>
+                        <p id="total-alerts">0</p>
+                    </div>
+                    <div class="stat-card alert-high">
+                        <h3>High Severity</h3>
+                        <p id="high-severity-alerts">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Alerts Section -->
+            <section id="alerts" class="alerts-section">
+                <h2>Recent Alerts</h2>
+                <div class="filters">
+                    <input type="text" id="search" placeholder="Search by domain or IP..." />
+                    <select id="severity-filter">
+                        <option value="">All Severities</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                    <select id="status-filter">
+                        <option value="">All Status</option>
+                        <option value="new">New</option>
+                        <option value="acknowledged">Acknowledged</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+                </div>
+                <table id="alerts-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Domain</th>
+                            <th>Source IP</th>
+                            <th>Threat Type</th>
+                            <th>Severity</th>
+                            <th>Score</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Alerts will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- DNS Logs Section -->
+            <section id="logs" class="logs-section">
+                <h2>DNS Query Logs</h2>
+                <table id="logs-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Source IP</th>
+                            <th>Domain</th>
+                            <th>Query Type</th>
+                            <th>Response</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Logs will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </section>
+        </main>
+
+        <footer>
+            <p>DNS Threat Monitor &copy; 2026 - Group E, CT5180 Capstone Project, NUIG</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
+

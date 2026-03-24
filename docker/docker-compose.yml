@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  dns-monitor:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: dns-threat-monitor
+    ports:
+      - "5000:5000"  # Flask dashboard
+      - "53:53/udp"  # DNS queries (DNSMASQ)
+      - "53:53/tcp"  # DNS queries (DNSMASQ)
+    volumes:
+      - ./data:/app/data  # Persistent data storage
+      - ./config:/app/config  # Configuration files
+      - ./logs:/app/logs  # Application logs
+    environment:
+      - FLASK_ENV=production
+      - DB_PATH=/app/data/dns_threat_monitor.db
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    networks:
+      - dns-network
+    # Security options
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+
+  # Optional: InfluxDB for metrics (future enhancement)
+  # influxdb:
+  #   image: influxdb:2.6
+  #   container_name: dns-monitor-influxdb
+  #   ports:
+  #     - "8086:8086"
+  #   volumes:
+  #     - influxdb-storage:/var/lib/influxdb2
+  #   environment:
+  #     - INFLUXDB_DB=dns_monitoring
+  #   networks:
+  #     - dns-network
+
+networks:
+  dns-network:
+    driver: bridge
+
+# volumes:
+#   influxdb-storage:
+
