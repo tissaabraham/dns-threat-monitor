@@ -2,12 +2,25 @@
 """
 This is just for testing my section of the code, can be implemented with the main code when
 """
+from capture_combo import combined_capture
+from input_parser import parse_line
+from blacklist import Blacklist
+import time
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+def main():
+    blacklist = Blacklist()
+    blacklist.load_from_file("threats.txt") # Load local threats file immediately (Our own custom list of domains for testing.)
+
+    # Start auto-refreshing from live threat feeds, a new method call for each
+    blacklist.start_auto_refresh("https://urlhaus.abuse.ch/downloads/text/", interval_hours=24)
+    blacklist.start_auto_refresh("https://raw.githubusercontent.com/openphish/public_feed/refs/heads/main/feed.txt", interval_hours=12)  # this one refreshes more frequently
+    """
+        From here on, blacklist.is_malicious() will always use the most current list, shouldn't need to think about it again.
+        Will need to look into reaching out to OpenPhish to maybe use the non-free version.
+    """
+    time.sleep(5)
+    print("There are currently this many URLs known:", len(blacklist.domains))
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+if __name__ == "__main__":
+    main()
