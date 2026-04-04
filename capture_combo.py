@@ -7,7 +7,7 @@ from tshark_capture import stream_tshark
 def combined_capture():
     """
     For now we're using two info sources, which are outputting data at the same time.
-        > Again, might be good idea to only use one? ToDo
+        > Thanks to DNS encryption, we gotta use both. Tshark will tell us when something gets around DNSMASQ and communicates privately.
     Since we gotta read both in the main.py, if we don't combine them, then tail_log() never ends, and stream_tshark() never starts.
     Threading lets us run two methods concurrently, capturing both outputs as a unified stream.
     And since the code can only read one input at a time, we'll use the queue.
