@@ -10,7 +10,7 @@ class RuleEngine:
         -> Keeps track of recent activity to spot patterns over time.
     """
 
-    SUSPICIOUS_TLDS = {".xyz", ".tk", ".top", ".pw", ".cc", ".su", ".ml"}   #Can add more if we think of them
+    SUSPICIOUS_TLDS = {".xyz", ".tk", ".top", ".pw", ".cc", ".su", ".ml", ".site"}   #Can add more if we think of them
     QUERY_RATE_LIMIT = 50  # queries per minute before flagging
     NXDOMAIN_LIMIT = 10  # NXDOMAIN replies per minute before flagging
     SUBDOMAIN_LIMIT = 20  # unique subdomains per 5 minutes before flagging

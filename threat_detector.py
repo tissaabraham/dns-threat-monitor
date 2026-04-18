@@ -57,8 +57,8 @@ class Detector:
 
     def _get_severity(self, score: int) -> str:
         if score >= 100:
-            return "HIGH"
+            return "High"
         elif score >= 50:
-            return "MEDIUM"
+            return "Medium"
         else:
-            return "LOW"
+            return "Low"
