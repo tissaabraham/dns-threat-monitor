@@ -1,5 +1,6 @@
 from dataclasses import  dataclass, field
 from datetime import datetime, timezone
+from typing import Optional
 
 
 @dataclass
@@ -11,6 +12,7 @@ class Alert:
     score: int
     rules_triggered: list
     status: str = "new" #Default val, assuming we're going with new -> acknowledged -> resolved -> archived like we said.
+    id: Optional[int] = None  # Set when stored in DB
 
 @dataclass
 class DnsEvent:
@@ -21,6 +23,19 @@ class DnsEvent:
     is_response: bool
     response_code: int
     resolved_ips: list = field(default_factory=list) #Sets the default obj type as list
+    id: Optional[int] = None  # Set when stored in DB
+
+@dataclass
+class ThreatCacheEntry:
+    """
+    Represents a cached malicious domain from external threat intelligence sources.
+    Used for quick lookup without repeated external API calls.
+    """
+    domain: str
+    source: str  # e.g., "OpenPhish", "Spamhaus", "Abuse.ch"
+    threat_type: str  # e.g., "phishing", "malware", "botnet"
+    last_updated: datetime
+    id: Optional[int] = None  # Set when stored in DB
 
 
 ##  We can use these to make sure we're always using the same format.
@@ -29,6 +44,7 @@ class DnsEvent:
 ##  Might also help Rob if he needs to grab specific info from any of the events.
 
 ## So, when I'm creating an event, it will always look like this:
+"""
 event = DnsEvent(
     timestamp=datetime.now(timezone.utc),
     source_ip="123.456.7.8",
@@ -38,7 +54,6 @@ event = DnsEvent(
     response_code=0
 )
 
-'''
 === MOST COMMON QUERY TYPES ===
 A - Looking for IPv4 address
 AAAA - Looking for IPv6 address
@@ -47,4 +62,4 @@ TXT - Looking for text records (Usually spam verification, etc)
 CNAME - Looking for alias, as the domain points to another domain
 PTR - Reverse lookup - if given IP, what's the name?
 NS - What are the nameservers for the domain?
-'''
+"""
