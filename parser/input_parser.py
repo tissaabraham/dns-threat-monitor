@@ -1,6 +1,6 @@
 import re   #RegEx
 from datetime import datetime, timezone
-from dataModels import DnsEvent
+from database.dataModels import DnsEvent
 
 # dnsmasq log pattern - searches the input for matching format.
 DNSMASQ_PATTERN = re.compile(

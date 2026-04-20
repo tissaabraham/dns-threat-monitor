@@ -2,9 +2,7 @@
 """
 This is just for testing my section of the code, can be implemented with the main code when
 """
-from capture_combo import combined_capture
-from input_parser import parse_line
-from blacklist import Blacklist
+from parser.blacklist import Blacklist
 import time
 
 def main():

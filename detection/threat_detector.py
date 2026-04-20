@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
-from dataModels import DnsEvent, Alert
-from blacklist import Blacklist
+from database.dataModels import DnsEvent, Alert
+from parser.blacklist import Blacklist
 from rules import RuleEngine
 
 

@@ -1,6 +1,6 @@
 from collections import defaultdict, deque
-from datetime import datetime, timedelta, timezone
-from dataModels import DnsEvent
+from datetime import datetime, timedelta
+from database.dataModels import DnsEvent
 import math
 from collections import Counter
 
