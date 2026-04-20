@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional, List
 import json
+# Import data model classes (Alert, DnsEvent, ThreatCacheEntry) from dataModels.py
+# These classes define the structure for DNS events, alerts, and threat cache entries
 from dataModels import Alert, DnsEvent, ThreatCacheEntry
 
 # ============================================================================
