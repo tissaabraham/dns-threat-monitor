@@ -6,10 +6,10 @@ from typing import Optional, List
 import json
 # Import data model classes (Alert, DnsEvent, ThreatCacheEntry) from dataModels.py
 # These classes define the structure for DNS events, alerts, and threat cache entries
-from dataModels import Alert, DnsEvent, ThreatCacheEntry
+from .dataModels import Alert, DnsEvent, ThreatCacheEntry
 
 # ============================================================================
-# DATABASE MANAGER - Core Database Operations
+# DATABASE MANAGER - Core DATABASE OPERATIONS
 # ============================================================================
 
 class DatabaseManager:

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from database.dataModels import DnsEvent, Alert
 from parser.blacklist import Blacklist
-from rules import RuleEngine
+from .rules import RuleEngine
 
 
 class Detector:

@@ -1,7 +1,7 @@
 import threading
 import queue
-from dnsmasq_capture import tail_log
-from tshark_capture import stream_tshark
+from .dnsmasq_capture import tail_log
+from .tshark_capture import stream_tshark
 
 
 def combined_capture():

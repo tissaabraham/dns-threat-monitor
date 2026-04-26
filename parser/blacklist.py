@@ -1,7 +1,7 @@
 import threading
 import requests     #For online requests
 from urllib.parse import urlparse
-from input_parser import get_root_domain
+from .input_parser import get_root_domain
 
 class Blacklist:
 
