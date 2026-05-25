@@ -1,8 +1,8 @@
 import time
+from config.config import Config
 
-LOG_PATH = "/var/log/dnsmasq.log"
-
-def tail_log(filepath: str = LOG_PATH):
+#Now using config/env variables, not hardcoded paths.
+def tail_log(filepath: str = Config.DNSMASQ_LOG_PATH):
     """
     Will watch the dnsmasq log, gives a new line when they come in.
     Will be running in conjunction with tshark.

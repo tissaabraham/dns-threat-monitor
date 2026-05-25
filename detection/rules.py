@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from database.dataModels import DnsEvent
 import math
 from collections import Counter
+from config.config import Config
 
 class RuleEngine:
     """
@@ -10,10 +11,10 @@ class RuleEngine:
         -> Keeps track of recent activity to spot patterns over time.
     """
 
-    SUSPICIOUS_TLDS = {".xyz", ".tk", ".top", ".pw", ".cc", ".su", ".ml", ".site"}   #Can add more if we think of them
-    QUERY_RATE_LIMIT = 50  # queries per minute before flagging
-    NXDOMAIN_LIMIT = 10  # NXDOMAIN replies per minute before flagging
-    SUBDOMAIN_LIMIT = 20  # unique subdomains per 5 minutes before flagging
+    SUSPICIOUS_TLDS = Config.SUSPICIOUS_TLDS
+    QUERY_RATE_LIMIT = Config.HIGH_QUERY_RATE_LIMIT
+    NXDOMAIN_LIMIT = Config.NXDOMAIN_LIMIT
+    SUBDOMAIN_LIMIT = Config.SUBDOMAIN_LIMIT
 
     def __init__(self):
         # These track recent events per IP address
@@ -98,28 +99,32 @@ class RuleEngine:
             timestamps.popleft()  # remove old events outside the window
         return len(timestamps) > limit
 
+
     @staticmethod #Since not touching instance data, needs to be static
     def _string_entropy(s: str) -> float:  #Uses Shannon Entropy to detect randomness
+        """
+            Higher value, more random.
+            Lower value, less random/more predictable.
+            It's not the most effective, but it still helps.
+                abcabcabc   - Moderately random
+                bbbbbbbbb   - Very random
+                ababababa   - Slightly more random
+                    > Counts repeats of individual letters basically, so it's not foolproof.
+                > Still, should help with randomly generated domains.
+        """
         counts = Counter(s)
         length = len(s)
         return -sum((c / length) * math.log2(c / length) for c in counts.values())
-    """
-        Higher value, less random.
-        It's not the most effective, but it still helps.
-        abcabcabc   - Moderately random
-        bbbbbbbbb   - Very random
-        ababababa   - Slightly more random
-        Counts repeats of individual letters basically, so it's not foolproof.
-        Still, should help with randomly generated domains.
-    """
 
-    """
-        Check to see if it could be a Domain Generation Algorithm, 
-        making different domains for DDOS and DNS tunnelling.
-        Sends the domains to the entropy checker, which will then have it's result checked.
-    """
+
+
     @staticmethod
     def _looks_like_dga(domain: str) -> bool:
+        """
+                Check to see if it could be a Domain Generation Algorithm,
+                making different domains for DDOS and DNS tunnelling.
+                Sends the domains to the entropy checker, which will then have it's result checked.
+        """
         label = domain.split(".")[0]  # just the leftmost label
         return len(label) > 12 and RuleEngine._string_entropy(label) > 3.5  #Can maybe decrease this to have it trigger less often.
 

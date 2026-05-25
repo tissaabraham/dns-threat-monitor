@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from database.dataModels import DnsEvent, Alert
 from parser.blacklist import Blacklist
-from .rules import RuleEngine
+from detection.rules import RuleEngine
 
 
 class Detector:
@@ -19,6 +19,9 @@ class Detector:
         Analyse DNS event.
         Returns an Alert if something suspicious was found.
         """
+        if event.is_response:
+            return None # Not checking responses, only queries
+
         blacklist_hit = self.blacklist.is_malicious(event.domain)
         rules_triggered = self.rule_engine.check(event)
 

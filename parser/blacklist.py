@@ -10,12 +10,13 @@ class Blacklist:
         self._lock = threading.Lock()  # Stops read/write errors, only one thing can hold it at a time.
         self._refresh_urls: list = []  # store URLs so we can re-download them
 
-    """
-        Load domains from local save file.
-        Called at startup.
-        This file is for if we want to create our own fake malicious site for testing, or if we have to test a specific site, or if we want to permanently flag a specific domain for some reason.
-    """
+
     def load_from_file(self, filepath: str):
+        """
+                Load domains from local save file.
+                Called at startup.
+                This file is for if we want to create our own fake malicious site for testing, or if we have to test a specific site, or if we want to permanently flag a specific domain for some reason.
+            """
         with open(filepath, "r") as f:
             for line in f:
                 line = line.strip()
@@ -43,12 +44,13 @@ class Blacklist:
             # If the download fails, keep using the existing list
             print(f"Blacklist refresh failed: {e}, keeping existing list")
 
-    """
-        Start a background refresh cycle for the given URL.
-        Refreshes immediately, then again every however many hours.
-        Call this once per URL we want to keep updated.
-    """
+
     def start_auto_refresh(self, url: str, interval_hours: int = 24):
+        """
+                Start a background refresh cycle for the given URL.
+                Refreshes immediately, then again every however many hours.
+                Call this once per URL we want to keep updated.
+            """
         self._refresh_urls.append(url)
 
         def refresh():
@@ -60,18 +62,28 @@ class Blacklist:
         # Do the first refresh immediately instead of waiting 24hrs
         threading.Thread(target=refresh, daemon=True).start()
 
-#Check if a domain (or its root) is on the blacklist.
+    def load_from_url_sync(self, url: str):
+        """
+            Downloads and loads a URL immediately, waiting for completion.
+            Used at startup to ensure the blacklist is fully populated
+            before beginning monitoring.
+        """
+        print(f"Loading {url}...")
+        self.load_from_url(url)  # just calls the existing method directly
+        print("Done.")
+
+    #Check if a domain (or its root) is on the blacklist.
     def is_malicious(self, domain: str) -> bool:
         root = get_root_domain(domain)
         with self._lock:
             return domain in self.domains or root in self.domains
 
     def extract_domain(self, url_or_domain: str) -> str:
+        """
+            Will handle both plain domains and full URLs (Needed if using OpenPhish too)
+            "https://evil.xyz/path" → "evil.xyz"
+            "evil.xyz" → "evil.xyz"
+        """
         if url_or_domain.startswith("http"):
             return urlparse(url_or_domain).netloc.lower()
         return url_or_domain.lower()
-"""
-    Will handle both plain domains and full URLs (Needed if using OpenPhish too)
-    "https://evil.xyz/path" → "evil.xyz"
-    "evil.xyz" → "evil.xyz"
-"""

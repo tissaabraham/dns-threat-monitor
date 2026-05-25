@@ -51,3 +51,21 @@ The system is containerized to ensure:
 
 Deploy the system by building and running Docker containers according to the Dockerfile and Docker Compose configurations provided in this directory.
 
+## Important notes:
+> Note: The docker files will need to be in the main root directory, and cannot be placed in the docker folder.
+> 
+> This is because they must be in the same folder which we run the "docker-compose up" command.
+> >This could be changed by editing the build segment of the yml, but it's easiest to leave them here.
+
+While we are testing this, before the full deployment and dashboard,
+it is important to run the network tests through the deployed docker container.
+
+This is done by installing DNS utilities:
+> apt-get update && apt-get install -y bind9-dnsutils
+
+Then, in another terminal within the container, we can start doing lookups:
+> nslookup google.com 127.0.0.1
+
+>nslookup fake-evil-site.xyz 127.0.0.1
+
+These should then be captured and displayed to the user in the primary terminal.
