@@ -1,0 +1,37 @@
+services:
+  monitor:
+    build: .
+    container_name: dns_monitor
+
+    # Needed for network monitoring
+    network_mode: host        # Shares the host network so dnsmasq can see traffic
+    cap_add:
+      - NET_ADMIN             # Allows tshark to capture packets
+      - NET_RAW               # Allows raw socket access
+
+    # Keeps the container running even if it crashes
+    restart: unless-stopped
+
+    ports:
+      - "5000:5000" #Port the dashboard is running on.
+
+    volumes:
+      # Mount the database file outside the container so data persists even if the container is rebuilt
+      - ./data:/app/data
+
+      # Mount threats.txt so we can edit it without rebuilding
+      - ./threats.txt:/app/threats.txt
+
+    # Show logs in real time
+    tty: true
+
+    # Checks the container every 30 seconds to make sure it's still working, not just running.
+    healthcheck:
+      test: ["CMD", "ss", "-tulpn"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    # Gets the environment variables to be used throughout
+    env_file:
+      - .env
