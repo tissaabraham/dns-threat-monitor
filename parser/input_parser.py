@@ -8,7 +8,7 @@ DNSMASQ_PATTERN = re.compile(
     r"dnsmasq\[\d+\]:\s+"
     r"(?P<event_type>query|reply)\[?(?P<query_type>[A-Z]*)\]?\s+"
     r"(?P<domain>[\w.\-]+)\s+"
-    r"(?:from|is|to)\s+"
+    r"(?P<connector>from|is|to)\s+"
     r"(?P<value>[\w.\-:]+)"
 )
 
@@ -25,9 +25,17 @@ def parse_dnsmasq_line(line: str) -> DnsEvent | None:
     timestamp = timestamp.replace(tzinfo=timezone.utc)
 
     is_response = groups["event_type"] == "reply"
+    connector = groups.get("connector")
     value = groups["value"]
-    response_code = 3 if value == "NXDOMAIN" else 0
-    resolved_ips = [value] if is_response and value != "NXDOMAIN" else []
+
+    # Detect NXDOMAIN-style replies where dnsmasq logs "reply <domain> from <ip>"
+    # (i.e. no 'is <ip>' payload). In these cases we treat as NXDOMAIN (response_code 3)
+    if is_response and connector == "from":
+        response_code = 3
+        resolved_ips = []
+    else:
+        response_code = 3 if value == "NXDOMAIN" else 0
+        resolved_ips = [value] if is_response and value != "NXDOMAIN" else []
 
     return DnsEvent(
         timestamp=timestamp,

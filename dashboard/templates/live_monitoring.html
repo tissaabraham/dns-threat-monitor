@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Monitoring – DNS Threat Monitor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background: #f6f8fb; }
+        .sidebar {
+            background: #16213e;
+            min-height: 100vh;
+            color: #fff;
+        }
+        .sidebar .nav-link {
+            color: #bfc9da;
+            font-weight: 500;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .sidebar .nav-link.active, .sidebar .nav-link:hover {
+            background: #233554;
+            color: #fff;
+        }
+        .sidebar .logo {
+            font-size: 1.4rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin: 32px 0 24px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .topbar {
+            background: #fff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .content-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(22,33,62,0.06);
+            padding: 24px;
+            margin-top: 32px;
+            margin-bottom: 24px;
+        }
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #d1f7e0;
+            color: #1a6636;
+            font-size: 0.82rem;
+            font-weight: 600;
+            border-radius: 20px;
+            padding: 3px 12px;
+        }
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #1a6636;
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .footer {
+            text-align: center;
+            color: #bfc9da;
+            font-size: 0.95rem;
+            margin: 32px 0 0 0;
+        }
+        .status-clean    { color: #1a6636; font-weight: 500; }
+        .status-threat   { color: #9b1c1c; font-weight: 500; }
+        .status-unknown  { color: #6c757d; }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 d-none d-md-block sidebar py-4">
+            <div class="logo ps-3"><span>🔰</span>DNS Threat Monitor</div>
+            <ul class="nav flex-column ps-3">
+                <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/live-monitoring">Live Monitoring</a></li>
+                <li class="nav-item"><a class="nav-link" href="/active-threats">Active Threats</a></li>
+                <li class="nav-item"><a class="nav-link" href="/logs">Logs</a></li>
+            </ul>
+        </nav>
+        <!-- Main -->
+        <main class="col-md-10 ms-sm-auto px-4">
+            <div class="topbar">
+                <div class="fs-5 fw-bold">Live Monitoring</div>
+                <div class="user">
+                    <div class="dropdown">
+                        <span class="dropdown-toggle text-dark fw-semibold d-flex align-items-center gap-2"
+                              data-bs-toggle="dropdown" aria-expanded="false" role="button" style="cursor:pointer;">
+                            <span style="font-size:1.5rem;">&#128100;</span>
+                            <span id="topbar-username">Username</span>
+                        </span>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><span class="dropdown-item-text fw-bold" id="dropdown-username">Username</span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/profile">My Profile</a></li>
+                            <li><a class="dropdown-item text-danger" href="#" id="logout-btn">&#8594; Log Out</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="fs-6 fw-bold">Latest 25 DNS Requests</div>
+                    <span class="live-badge"><span class="live-dot"></span>Live — refreshing every 5s</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Time</th>
+                                <th>Domain</th>
+                                <th>Source IP</th>
+                                <th>Status</th>
+                                <th>Response Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="live-table-body">
+                            <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="footer">© 2025 DNS Threat Monitor. All rights reserved.</div>
+        </main>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function loadLive() {
+        fetch('/api/live-logs').then(r=>r.json()).then(rows=>{
+            const html = rows.length
+                ? rows.map(l=>`<tr>
+                    <td>${l.timestamp ? new Date(l.timestamp).toLocaleString() : '-'}</td>
+                    <td>${l.domain||'-'}</td>
+                    <td>${l.source_ip||'-'}</td>
+                    <td class="status-${(l.status||'').toLowerCase()}">${l.status||'-'}</td>
+                    <td>${l.response_time!=null ? l.response_time+' ms' : '-'}</td>
+                  </tr>`).join('')
+                : '<tr><td colspan="5" class="text-center text-muted">No DNS requests recorded yet</td></tr>';
+            document.getElementById('live-table-body').innerHTML = html;
+        }).catch(()=>{
+            document.getElementById('live-table-body').innerHTML='<tr><td colspan="5" class="text-center text-danger">Failed to load data</td></tr>';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const saved = localStorage.getItem('dtm_username');
+        if (saved) {
+            document.getElementById('topbar-username').textContent = saved;
+            document.getElementById('dropdown-username').textContent = saved;
+        }
+        document.getElementById('logout-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            localStorage.removeItem('dtm_username');
+            localStorage.removeItem('dtm_fullname');
+            localStorage.removeItem('dtm_email');
+            document.getElementById('topbar-username').textContent = 'Username';
+            document.getElementById('dropdown-username').textContent = 'Username';
+        });
+        loadLive();
+        setInterval(loadLive, 5000);
+    });
+</script>
+</body>
+</html>
