@@ -121,7 +121,8 @@ class RuleEngine:
     @staticmethod
     def _looks_like_dga(domain: str) -> bool:
         label = domain.split(".")[0]  # just the leftmost label
-        return len(label) > 12 and RuleEngine._string_entropy(label) > 3.5  #Can maybe decrease this to have it trigger less often.
+        # Consider long labels likely DGA-ish, or very high-entropy short labels
+        return len(label) > 12 or RuleEngine._string_entropy(label) > 3.0
 
     def _check_dga_pattern(self, event: DnsEvent) -> bool:
         return self._looks_like_dga(event.domain)

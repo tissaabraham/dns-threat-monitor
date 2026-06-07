@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile – DNS Threat Monitor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background: #f6f8fb; }
+        .sidebar {
+            background: #16213e;
+            min-height: 100vh;
+            color: #fff;
+        }
+        .sidebar .nav-link {
+            color: #bfc9da;
+            font-weight: 500;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .sidebar .nav-link.active, .sidebar .nav-link:hover {
+            background: #233554;
+            color: #fff;
+        }
+        .sidebar .logo {
+            font-size: 1.4rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin: 32px 0 24px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .topbar {
+            background: #fff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .topbar .user {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .topbar .user .dropdown-toggle {
+            cursor: pointer;
+        }
+        .topbar .user .dropdown-item.logout-item {
+            color: #dc3545;
+            font-weight: 500;
+        }
+        .topbar .user .dropdown-item.logout-item:hover {
+            background: #fff5f5;
+            color: #b02a37;
+        }
+        .profile-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(22,33,62,0.06);
+            padding: 32px 36px;
+            margin-bottom: 28px;
+        }
+        .profile-card h5 {
+            color: #16213e;
+            font-weight: 700;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f2f5;
+        }
+        .profile-card label {
+            color: #495057;
+            font-weight: 500;
+        }
+        .profile-card .btn-save {
+            background: #16213e;
+            color: #fff;
+            font-weight: 500;
+            border: none;
+            padding: 10px 32px;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+        .profile-card .btn-save:hover {
+            background: #233554;
+        }
+        .profile-card .btn-update {
+            background: #233554;
+            color: #fff;
+            font-weight: 500;
+            border: none;
+            padding: 10px 32px;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+        .profile-card .btn-update:hover {
+            background: #16213e;
+        }
+        .footer {
+            text-align: center;
+            color: #bfc9da;
+            font-size: 0.95rem;
+            margin: 32px 0 0 0;
+        }
+        .alert-success-custom {
+            display: none;
+            background: #d1f7e0;
+            color: #1a6636;
+            border-radius: 8px;
+            padding: 10px 18px;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+        .alert-error-custom {
+            display: none;
+            background: #fde8e8;
+            color: #9b1c1c;
+            border-radius: 8px;
+            padding: 10px 18px;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+        /* Eye toggle */
+        .pw-wrapper {
+            position: relative;
+        }
+        .pw-wrapper .form-control {
+            padding-right: 44px;
+        }
+        .pw-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 0;
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+        .pw-toggle:hover { color: #16213e; }
+        /* Caps Lock badge */
+        .caps-warning {
+            display: none;
+            font-size: 0.78rem;
+            color: #856404;
+            background: #fff3cd;
+            border-radius: 5px;
+            padding: 2px 8px;
+            margin-top: 5px;
+        }
+        /* Strength bar */
+        .strength-bar-wrap {
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin-top: 7px;
+            overflow: hidden;
+        }
+        .strength-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.3s, background 0.3s;
+        }
+        .strength-label {
+            font-size: 0.78rem;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        /* Requirements checklist */
+        .pw-reqs {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 0 0;
+            font-size: 0.82rem;
+        }
+        .pw-reqs li { margin-bottom: 3px; color: #6c757d; }
+        .pw-reqs li.met { color: #1a6636; }
+        .pw-reqs li.unmet { color: #9b1c1c; }
+        .pw-reqs li::before { margin-right: 5px; }
+        .pw-reqs li.met::before { content: "✓"; }
+        .pw-reqs li.unmet::before { content: "✗"; }
+        /* Confirm match badge */
+        .match-badge {
+            font-size: 0.78rem;
+            margin-top: 5px;
+            font-weight: 500;
+            display: none;
+        }
+        .match-badge.ok  { color: #1a6636; }
+        .match-badge.bad { color: #9b1c1c; }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 d-none d-md-block sidebar py-4">
+            <div class="logo ps-3"><span>🔰</span>DNS Threat Monitor</div>
+            <ul class="nav flex-column ps-3">
+                <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Live Monitoring</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Active Threats</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Logs</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/profile">User</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Help</a></li>
+            </ul>
+        </nav>
+        <!-- Main -->
+        <main class="col-md-10 ms-sm-auto px-4">
+            <div class="topbar">
+                <div class="fs-5 fw-bold">My Profile</div>
+                <div class="user">
+                    <a href="/profile" class="text-decoration-none text-dark d-flex align-items-center gap-2">
+                        <span style="font-size:1.5rem;">&#128100;</span>
+                        <span class="fw-semibold" id="topbar-username">Username</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="mt-4">
+
+                <!-- Personal Information -->
+                <div class="profile-card">
+                    <h5>&#128100; Personal Information</h5>
+                    <div id="profile-success" class="alert-success-custom">Profile information saved successfully.</div>
+                    <div id="profile-error" class="alert-error-custom">Please fill in all fields.</div>
+                    <form id="profile-form">
+                        <div class="mb-3 row">
+                            <label for="username" class="col-sm-3 col-form-label">Username</label>
+                            <div class="col-sm-6">
+                                <input type="text" class="form-control" id="username" placeholder="Enter username">
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label for="fullname" class="col-sm-3 col-form-label">Full Name</label>
+                            <div class="col-sm-6">
+                                <input type="text" class="form-control" id="fullname" placeholder="Enter full name">
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label for="email" class="col-sm-3 col-form-label">Email</label>
+                            <div class="col-sm-6">
+                                <input type="email" class="form-control" id="email" placeholder="Enter email address">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-9 offset-sm-3">
+                                <button type="submit" class="btn-save">Save Profile Info</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Change Password -->
+                <div class="profile-card">
+                    <h5>&#128274; Change Password</h5>
+                    <div id="password-success" class="alert-success-custom">Password updated successfully.</div>
+                    <div id="password-error" class="alert-error-custom"></div>
+                    <form id="password-form">
+
+                        <!-- Current Password -->
+                        <div class="mb-3 row">
+                            <label for="current-password" class="col-sm-3 col-form-label">Current Password</label>
+                            <div class="col-sm-6">
+                                <div class="pw-wrapper">
+                                    <input type="password" class="form-control" id="current-password" placeholder="Enter current password">
+                                    <button type="button" class="pw-toggle" data-target="current-password" title="Show / Hide">&#128065;</button>
+                                </div>
+                                <div class="caps-warning" id="caps-current">&#9651; Caps Lock is on</div>
+                            </div>
+                        </div>
+
+                        <!-- New Password -->
+                        <div class="mb-3 row">
+                            <label for="new-password" class="col-sm-3 col-form-label">New Password</label>
+                            <div class="col-sm-6">
+                                <div class="pw-wrapper">
+                                    <input type="password" class="form-control" id="new-password" placeholder="Enter new password">
+                                    <button type="button" class="pw-toggle" data-target="new-password" title="Show / Hide">&#128065;</button>
+                                </div>
+                                <div class="caps-warning" id="caps-new">&#9651; Caps Lock is on</div>
+                                <!-- Strength bar -->
+                                <div class="strength-bar-wrap"><div class="strength-bar" id="strength-bar"></div></div>
+                                <div class="strength-label" id="strength-label"></div>
+                                <!-- Requirements checklist -->
+                                <ul class="pw-reqs" id="pw-reqs">
+                                    <li id="req-len">At least 8 characters</li>
+                                    <li id="req-upper">At least one uppercase letter</li>
+                                    <li id="req-lower">At least one lowercase letter</li>
+                                    <li id="req-num">At least one number</li>
+                                    <li id="req-special">At least one special character (!@#$%^&amp;*)</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div class="mb-3 row">
+                            <label for="confirm-password" class="col-sm-3 col-form-label">Confirm Password</label>
+                            <div class="col-sm-6">
+                                <div class="pw-wrapper">
+                                    <input type="password" class="form-control" id="confirm-password" placeholder="Confirm new password">
+                                    <button type="button" class="pw-toggle" data-target="confirm-password" title="Show / Hide">&#128065;</button>
+                                </div>
+                                <div class="caps-warning" id="caps-confirm">&#9651; Caps Lock is on</div>
+                                <div class="match-badge" id="match-badge"></div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-9 offset-sm-3">
+                                <button type="submit" class="btn-update">Update Password</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+            <div class="footer">© 2025 DNS Threat Monitor. All rights reserved.</div>
+        </main>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    /* ── Helpers ─────────────────────────────────────── */
+    function showMsg(id, visible) {
+        document.getElementById(id).style.display = visible ? 'block' : 'none';
+    }
+
+    /* ── Eye Toggle ──────────────────────────────────── */
+    document.querySelectorAll('.pw-toggle').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const input = document.getElementById(this.dataset.target);
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            this.innerHTML = isHidden ? '&#128064;' : '&#128065;';
+        });
+    });
+
+    /* ── Caps Lock Detection ─────────────────────────── */
+    function capsHandler(inputId, warningId) {
+        const input = document.getElementById(inputId);
+        const warn  = document.getElementById(warningId);
+        input.addEventListener('keyup', function(e) {
+            warn.style.display = e.getModifierState('CapsLock') ? 'block' : 'none';
+        });
+        input.addEventListener('blur', function() {
+            warn.style.display = 'none';
+        });
+    }
+    capsHandler('current-password', 'caps-current');
+    capsHandler('new-password',     'caps-new');
+    capsHandler('confirm-password', 'caps-confirm');
+
+    /* ── Password Strength Meter ─────────────────────── */
+    const strengthBar   = document.getElementById('strength-bar');
+    const strengthLabel = document.getElementById('strength-label');
+
+    function getStrength(pw) {
+        let score = 0;
+        if (pw.length >= 8)                    score++;
+        if (pw.length >= 12)                   score++;
+        if (/[A-Z]/.test(pw))                  score++;
+        if (/[a-z]/.test(pw))                  score++;
+        if (/[0-9]/.test(pw))                  score++;
+        if (/[^A-Za-z0-9]/.test(pw))           score++;
+        return score;
+    }
+
+    const strengthMap = [
+        { label: '',           color: '#e9ecef', pct: 0   },
+        { label: 'Very Weak',  color: '#dc3545', pct: 16  },
+        { label: 'Weak',       color: '#fd7e14', pct: 33  },
+        { label: 'Fair',       color: '#ffc107', pct: 50  },
+        { label: 'Good',       color: '#20c997', pct: 66  },
+        { label: 'Strong',     color: '#198754', pct: 83  },
+        { label: 'Very Strong',color: '#0d6efd', pct: 100 },
+    ];
+
+    document.getElementById('new-password').addEventListener('input', function() {
+        const pw    = this.value;
+        const score = pw.length === 0 ? 0 : Math.min(getStrength(pw), 6);
+        const s     = strengthMap[score];
+        strengthBar.style.width      = s.pct + '%';
+        strengthBar.style.background = s.color;
+        strengthLabel.textContent    = s.label;
+        strengthLabel.style.color    = s.color;
+        updateRequirements(pw);
+        updateMatchBadge();
+    });
+
+    /* ── Requirements Checklist ──────────────────────── */
+    function updateRequirements(pw) {
+        const checks = {
+            'req-len':     pw.length >= 8,
+            'req-upper':   /[A-Z]/.test(pw),
+            'req-lower':   /[a-z]/.test(pw),
+            'req-num':     /[0-9]/.test(pw),
+            'req-special': /[^A-Za-z0-9]/.test(pw),
+        };
+        for (const [id, met] of Object.entries(checks)) {
+            const el = document.getElementById(id);
+            el.className = met ? 'met' : (pw.length > 0 ? 'unmet' : '');
+        }
+    }
+
+    /* ── Confirm Password Match Badge ────────────────── */
+    const matchBadge = document.getElementById('match-badge');
+
+    function updateMatchBadge() {
+        const newPw   = document.getElementById('new-password').value;
+        const confirm = document.getElementById('confirm-password').value;
+        if (!confirm) { matchBadge.style.display = 'none'; return; }
+        if (newPw === confirm) {
+            matchBadge.className   = 'match-badge ok';
+            matchBadge.textContent = '✓ Passwords match';
+        } else {
+            matchBadge.className   = 'match-badge bad';
+            matchBadge.textContent = '✗ Passwords do not match';
+        }
+        matchBadge.style.display = 'block';
+    }
+
+    document.getElementById('confirm-password').addEventListener('input', updateMatchBadge);
+
+    /* ── Load saved username into topbar and form ──── */
+    (function() {
+        const saved = localStorage.getItem('dtm_username');
+        if (saved) {
+            document.getElementById('topbar-username').textContent = saved;
+            document.getElementById('username').value = saved;
+        }
+        const savedFull = localStorage.getItem('dtm_fullname');
+        if (savedFull) document.getElementById('fullname').value = savedFull;
+        const savedEmail = localStorage.getItem('dtm_email');
+        if (savedEmail) document.getElementById('email').value = savedEmail;
+    })();
+
+    /* ── Profile Form Submit ─────────────────────────── */
+    document.getElementById('profile-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const fullname = document.getElementById('fullname').value.trim();
+        const email    = document.getElementById('email').value.trim();
+        showMsg('profile-success', false);
+        showMsg('profile-error', false);
+        if (!username || !fullname || !email) {
+            showMsg('profile-error', true);
+            return;
+        }
+        localStorage.setItem('dtm_username', username);
+        localStorage.setItem('dtm_fullname', fullname);
+        localStorage.setItem('dtm_email', email);
+        document.getElementById('topbar-username').textContent = username;
+        showMsg('profile-success', true);
+    });
+
+    /* ── Password Form Submit ────────────────────────── */
+    document.getElementById('password-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const current = document.getElementById('current-password').value;
+        const newPw   = document.getElementById('new-password').value;
+        const confirm = document.getElementById('confirm-password').value;
+        const errEl   = document.getElementById('password-error');
+        showMsg('password-success', false);
+        showMsg('password-error', false);
+        if (!current || !newPw || !confirm) {
+            errEl.textContent = 'Please fill in all password fields.';
+            showMsg('password-error', true);
+            return;
+        }
+        if (newPw !== confirm) {
+            errEl.textContent = 'New password and confirmation do not match.';
+            showMsg('password-error', true);
+            return;
+        }
+        const score = getStrength(newPw);
+        if (score < 3) {
+            errEl.textContent = 'Password is too weak. Please meet the requirements below.';
+            showMsg('password-error', true);
+            return;
+        }
+        showMsg('password-success', true);
+        document.getElementById('password-form').reset();
+        strengthBar.style.width = '0%';
+        strengthLabel.textContent = '';
+        matchBadge.style.display = 'none';
+        document.querySelectorAll('.pw-reqs li').forEach(li => li.className = '');
+    });
+
+</script>
+</body>
+</html>

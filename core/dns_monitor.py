@@ -22,12 +22,12 @@ from threading import Thread, Event
 
 # Import system components
 from capture.capture_combo import combined_capture
-from parser.input_parser import parse_line
 from parser.blacklist import Blacklist
 from detection.rules import RuleEngine
 from detection.threat_detector import Detector
 from database.database import DatabaseManager
 from config.config import Config
+from core.pipeline import ProcessingPipeline
 
 # Setup logging
 logging.basicConfig(
@@ -59,15 +59,14 @@ class DNSThreatMonitor:
         self.blacklist = Blacklist()
         self.rule_engine = RuleEngine()
         self.detector = Detector(self.blacklist, self.rule_engine)
+        self.pipeline = ProcessingPipeline(self.database, self.blacklist, self.rule_engine, self.detector)
 
         # Processing queue and control
         self.event_queue = Queue(maxsize=self.config.QUEUE_SIZE)
         self.stop_event = Event()
 
-        # Statistics
+        # Statistics (counters are owned by the pipeline; only start_time lives here)
         self.stats = {
-            'events_processed': 0,
-            'alerts_generated': 0,
             'start_time': datetime.now(timezone.utc)
         }
 
@@ -202,42 +201,21 @@ class DNSThreatMonitor:
 
     def _process_dns_event(self, source: str, line: str):
         """Process a single DNS event through the pipeline."""
-        try:
-            # Parse the raw line into a DnsEvent
-            event = parse_line(source, line)
-            if not event:
-                return  # Skip invalid events
-
-            # Analyze the event for threats
-            alert = self.detector.analyse(event)
-
-            # Store the DNS log
-            threat_score = alert.score if alert else 0
-            dns_log_id = self.database.store_dns_log(event, threat_score)
-
-            # Store alert if generated
-            if alert:
-                alert_id = self.database.store_alert(alert, dns_log_id)
-                logger.warning(f"🚨 ALERT: {alert.domain} ({alert.severity}) - {alert.rules_triggered}")
-                self.stats['alerts_generated'] += 1
-
-            # Update statistics
-            self.stats['events_processed'] += 1
-
-        except Exception as e:
-            logger.error(f"Error processing DNS event: {e}")
+        self.pipeline.process_dns_event(source, line)
 
     def _print_stats(self):
         """Print current system statistics."""
         runtime = datetime.now(timezone.utc) - self.stats['start_time']
         hours = runtime.total_seconds() / 3600
+        p = self.pipeline.get_pipeline_stats()
 
         if hours > 0:
-            eps = self.stats['events_processed'] / hours
-            aps = self.stats['alerts_generated'] / hours
+            eps = p['events_processed'] / hours
+            aps = p['alerts_generated'] / hours
 
-            print(f"\r📊 Events: {self.stats['events_processed']} "
-                  f"Alerts: {self.stats['alerts_generated']} "
+            print(f"\r📊 Events: {p['events_processed']} "
+                  f"Alerts: {p['alerts_generated']} "
+                  f"Parse errors: {p['parse_errors']} "
                   f"Rate: {eps:.1f} EPS, {aps:.2f} APS", end='', flush=True)
 
 
