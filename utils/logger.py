@@ -8,6 +8,7 @@ logging across all system components.
 
 import logging
 import logging.handlers
+import time
 from pathlib import Path
 from config.config import Config
 
@@ -133,12 +134,12 @@ class Timer:
         self.start_time = None
 
     def __enter__(self):
-        self.start_time = logging.time.time()
+        self.start_time = time.time()
         self.logger.debug(f"Starting: {self.name}")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        end_time = logging.time.time()
+        end_time = time.time()
         duration = end_time - self.start_time
         self.logger.debug(f"Completed: {self.name} in {duration:.4f} seconds")
 

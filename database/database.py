@@ -36,7 +36,7 @@ class DatabaseManager:
         """
         try:
             # Connect to the database (creates it if it doesn't exist)
-            self.connection = sqlite3.connect(self.DB_FILE)
+            self.connection = sqlite3.connect(self.DB_FILE, check_same_thread=False)
             self.connection.row_factory = sqlite3.Row  # Return rows as dictionaries
             cursor = self.connection.cursor()
 
@@ -95,12 +95,54 @@ class DatabaseManager:
                 )
             ''')
 
+            # New normalized table for resolved IPs (one row per resolved IP)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS dns_log_ips (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    dns_log_id INTEGER NOT NULL,
+                    ip_address TEXT NOT NULL,
+                    FOREIGN KEY (dns_log_id) REFERENCES dns_logs(id)
+                )
+            ''')
+
+            # Threat feeds table to track external sources (optional normalization)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS threat_feeds (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    url TEXT,
+                    last_checked TEXT
+                )
+            ''')
+
+            # Rules table and junction table to record which rules triggered an alert
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS rules (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL,
+                    description TEXT
+                )
+            ''')
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS alert_rules (
+                    alert_id INTEGER NOT NULL,
+                    rule_id INTEGER NOT NULL,
+                    FOREIGN KEY (alert_id) REFERENCES alerts(id),
+                    FOREIGN KEY (rule_id) REFERENCES rules(id),
+                    PRIMARY KEY (alert_id, rule_id)
+                )
+            ''')
+
             # Create indexes for faster queries
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_dns_logs_timestamp ON dns_logs(timestamp)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_dns_logs_domain ON dns_logs(domain)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_alerts_timestamp ON alerts(timestamp)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_alerts_status ON alerts(status)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_threat_cache_domain ON threat_cache(domain)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_dns_log_ips_dns_log_id ON dns_log_ips(dns_log_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_threat_feeds_name ON threat_feeds(name)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_rules_name ON rules(name)')
 
             self.connection.commit()
             print(f"✓ Database initialized successfully at {self.DB_FILE}")
@@ -147,9 +189,26 @@ class DatabaseManager:
                 threat_score
             ))
             
+            dns_log_id = cursor.lastrowid
+
+            # If resolved IPs are present, insert normalized rows into dns_log_ips
+            try:
+                resolved_ips = event.resolved_ips or []
+                if isinstance(resolved_ips, str):
+                    # Defensive: if a single string was provided
+                    resolved_ips = [resolved_ips]
+
+                for ip in resolved_ips:
+                    cursor.execute('''
+                        INSERT INTO dns_log_ips (dns_log_id, ip_address) VALUES (?, ?)
+                    ''', (dns_log_id, ip))
+            except sqlite3.Error:
+                # Non-fatal: continue even if dns_log_ips insert fails
+                pass
+
             self.connection.commit()
-            return cursor.lastrowid
-            
+            return dns_log_id
+
         except sqlite3.Error as e:
             print(f"✗ Error storing DNS log: {e}")
             raise
@@ -330,7 +389,7 @@ class DatabaseManager:
             cursor.execute('''
                 SELECT * FROM alert_history 
                 WHERE alert_id = ?
-                ORDER BY timestamp DESC
+                ORDER BY timestamp ASC
             ''', (alert_id,))
             
             return [dict(row) for row in cursor.fetchall()]

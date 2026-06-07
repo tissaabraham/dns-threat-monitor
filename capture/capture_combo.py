@@ -1,5 +1,6 @@
 import threading
 import queue
+import platform
 from .dnsmasq_capture import tail_log
 from .tshark_capture import stream_tshark
 
@@ -27,8 +28,10 @@ def combined_capture():
         for item in stream_tshark():
             q.put(item)
 
-    # Start both capture methods as background threads
-    threading.Thread(target=run_dnsmasq, daemon=True).start()
+    # dnsmasq only exists on Linux — skip it on Windows
+    if platform.system() != "Windows":
+        threading.Thread(target=run_dnsmasq, daemon=True).start()
+
     threading.Thread(target=run_tshark, daemon=True).start()    #daemon=True will kill the two methods when we stop the program
 
     # Make a tuple from inputs as they arrive
