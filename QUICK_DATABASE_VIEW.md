@@ -1,6 +1,6 @@
 # Quick Commands to View Database Structure
 
-## Option 1: Run the Inspector Script (RECOMMENDED) ⭐
+## Option 1: Run the Inspector Script (RECOMMENDED)
 
 **The script is located in the `database/` subfolder**
 
@@ -10,21 +10,21 @@ cd "C:\Users\Tissa Abraham\MyGitRepo\dns-threat-monitor\database"
 python inspect_db.py
 ```
 
-### Method B: Run directly with full path (No cd needed) ✅ EASIEST
+### Method B: Run directly with full path (No cd needed) - EASIEST
 ```powershell
 python "C:\Users\Tissa Abraham\MyGitRepo\dns-threat-monitor\database\inspect_db.py"
 ```
 
-⚠️ **Important Notes:**
+**Important Notes:**
 - Use **quotes** around the path because of spaces in "Tissa Abraham"
 - The script is in the **`database/`** subfolder (not root)
 - Use the **full path** to `database/inspect_db.py`
 
 This will show:
-- ✅ All tables with row counts
-- ✅ Columns, types, and constraints
-- ✅ Indexes and foreign keys
-- ✅ Database statistics
+- All tables with row counts
+- Columns, types, and constraints
+- Indexes and foreign keys
+- Database statistics
 
 ---
 
@@ -46,7 +46,7 @@ conn.close()
 "
 ```
 
-⚠️ **Note:** Use **quotes** around the path because of spaces in "Tissa Abraham"
+**Note:** Use **quotes** around the path because of spaces in "Tissa Abraham"
 
 ---
 
@@ -65,7 +65,7 @@ sqlite3 dns_threat_monitor.db
 # .quit                # Exit
 ```
 
-⚠️ **Note:** Use **quotes** around the path because of spaces in "Tissa Abraham"
+**Note:** Use **quotes** around the path because of spaces in "Tissa Abraham"
 
 ---
 
@@ -95,7 +95,7 @@ print(f"dns_logs rows: {cursor.fetchone()[0]}")
 conn.close()
 ```
 
-⚠️ **Note:** Use **quotes** around the path because of spaces in "Tissa Abraham"
+**Note:** Use **quotes** around the path because of spaces in "Tissa Abraham"
 
 ---
 
@@ -113,7 +113,7 @@ Then:
 
 ## Database Tables Overview
 
-Your database has 4 main tables:
+The database has 4 main tables:
 
 ### 1. dns_logs
 - Stores all DNS queries captured from network
@@ -143,7 +143,7 @@ Your database has 4 main tables:
 
 ## Run Inspector Now
 
-### 🚀 **COPY AND PASTE THIS COMMAND (Fastest Way):**
+### Quick Start Command (Fastest Way):
 
 ```powershell
 python "C:\Users\Tissa Abraham\MyGitRepo\dns-threat-monitor\database\inspect_db.py"
@@ -153,7 +153,7 @@ This will give you a complete, formatted report of your entire database structur
 
 ---
 
-## ⚠️ Important Notes
+## Important Notes
 
 ### File Location
 The `inspect_db.py` script is in the **`database/`** subfolder:
@@ -172,16 +172,16 @@ dns-threat-monitor/
 Since your username "Tissa Abraham" contains a space:
 
 ```powershell
-# ❌ WRONG - Will fail with "No such file or directory"
+# INCORRECT - Will fail with "No such file or directory"
 python "C:\Users\Tissa Abraham\MyGitRepo\dns-threat-monitor\inspect_db.py"
 
-# ✅ CORRECT - Include database/ folder in path
+# CORRECT - Include database/ folder in path
 python "C:\Users\Tissa Abraham\MyGitRepo\dns-threat-monitor\database\inspect_db.py"
 
-# ❌ WRONG - No quotes (won't work due to space)
+# INCORRECT - No quotes (won't work due to space)
 cd C:\Users\Tissa Abraham\MyGitRepo\dns-threat-monitor
 
-# ✅ CORRECT - With quotes
+# CORRECT - With quotes
 cd "C:\Users\Tissa Abraham\MyGitRepo\dns-threat-monitor"
 ```
 
@@ -189,7 +189,7 @@ cd "C:\Users\Tissa Abraham\MyGitRepo\dns-threat-monitor"
 
 ## Summary
 
-✅ **Always use:**
+**Always use:**
 1. **Full path** with `database/` folder included
 2. **Quotes** around paths with spaces
 3. **Exact filename** `inspect_db.py`

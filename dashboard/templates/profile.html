@@ -182,8 +182,8 @@
         .pw-reqs li.met { color: #1a6636; }
         .pw-reqs li.unmet { color: #9b1c1c; }
         .pw-reqs li::before { margin-right: 5px; }
-        .pw-reqs li.met::before { content: "✓"; }
-        .pw-reqs li.unmet::before { content: "✗"; }
+        .pw-reqs li.met::before { content: "OK"; }
+        .pw-reqs li.unmet::before { content: "X"; }
         /* Confirm match badge */
         .match-badge {
             font-size: 0.78rem;
@@ -200,7 +200,7 @@
     <div class="row">
         <!-- Sidebar -->
         <nav class="col-md-2 d-none d-md-block sidebar py-4">
-            <div class="logo ps-3"><span>🔰</span>DNS Threat Monitor</div>
+            <div class="logo ps-3"><span>Shield</span>DNS Threat Monitor</div>
             <ul class="nav flex-column ps-3">
                 <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link" href="#">Live Monitoring</a></li>
@@ -417,10 +417,10 @@
         if (!confirm) { matchBadge.style.display = 'none'; return; }
         if (newPw === confirm) {
             matchBadge.className   = 'match-badge ok';
-            matchBadge.textContent = '✓ Passwords match';
+            matchBadge.textContent = 'Passwords match';
         } else {
             matchBadge.className   = 'match-badge bad';
-            matchBadge.textContent = '✗ Passwords do not match';
+            matchBadge.textContent = 'Passwords do not match';
         }
         matchBadge.style.display = 'block';
     }
