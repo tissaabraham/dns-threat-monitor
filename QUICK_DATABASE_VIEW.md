@@ -149,7 +149,7 @@ The database has 4 main tables:
 python "C:\Users\Tissa Abraham\MyGitRepo\dns-threat-monitor\database\inspect_db.py"
 ```
 
-This will give you a complete, formatted report of your entire database structure!
+This will give you a complete, formatted report of entire database structure!
 
 ---
 
@@ -169,7 +169,7 @@ dns-threat-monitor/
 **Do NOT** look for it in the root directory!
 
 ### Path with Spaces
-Since your username "Tissa Abraham" contains a space:
+Since the username "Tissa Abraham" contains a space:
 
 ```powershell
 # INCORRECT - Will fail with "No such file or directory"

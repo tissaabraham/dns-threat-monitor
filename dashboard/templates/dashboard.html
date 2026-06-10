@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DNS Threat Monitor</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- Inline styles for the main dashboard layout and components -->
     <style>
         body { background: #f6f8fb; }
         .sidebar {
@@ -129,6 +130,7 @@
     </style>
 </head>
 <body>
+<!-- Main dashboard layout -->
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
@@ -141,7 +143,7 @@
                 <li class="nav-item"><a class="nav-link" href="/logs">Logs</a></li>
             </ul>
         </nav>
-        <!-- Main -->
+        <!-- Main content area -->
         <main class="col-md-10 ms-sm-auto px-4">
             <div class="topbar">
                 <div class="fs-5 fw-bold">Dashboard</div>
@@ -161,6 +163,7 @@
                     </div>
                 </div>
             </div>
+            <!-- Summary metric cards -->
             <div class="summary-cards">
                 <div class="summary-card" data-bs-toggle="modal" data-bs-target="#requestsModal">
                     <div class="icon">Network</div>
@@ -238,6 +241,7 @@
                     </div>
                 </div>
             </div>
+            <!-- Table showing the 5 most recent DNS events -->
             <div class="recent-table">
                 <div class="d-flex align-items-center mb-2">
                     <div class="fs-6 fw-bold me-2">5 Most Recent</div>
@@ -259,6 +263,7 @@
                     </table>
                 </div>
             </div>
+            <!-- Quick navigation cards for other views -->
             <div class="nav-cards">
                 <div class="nav-card">
                     <div class="icon text-primary">&#128246;</div>
@@ -282,7 +287,8 @@
             <div class="footer">© 2025 DNS Threat Monitor. All rights reserved.</div>
         </main>
     </div>
-</div>
+ </div>
+<!-- JavaScript dependencies and dashboard data loading logic -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // Fetch summary data

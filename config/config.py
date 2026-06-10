@@ -38,7 +38,7 @@ class Config:
     # ============================================================================
 
     # Network card to capture traffic from
-    CAPTURE_INTERFACE = "eth0"  # Change this to match your network interface
+    CAPTURE_INTERFACE = "eth0"  # Change this to match the network interface
 
     # Where dnsmasq writes its logs
     DNSMASQ_LOG_PATH = "/var/log/dnsmasq.log"

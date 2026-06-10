@@ -27,7 +27,7 @@ Home users rarely have equivalent protection. As a result, there is a clear secu
 ## Goals and Objectives
 
 ### Primary Goal
-The primary goal of this project is to design and implement a lightweight passive DNS monitoring and threat detection system suitable for deployment in a home Wi-Fi network environment. The system improves network visibility, identifies potentially malicious domain activity, and provides structured threat reporting without interfering with normal network operations.
+The primary goal of this project was to build a lightweight passive DNS monitoring and threat detection system that can run in a typical home Wi-Fi network environment. The system improves network visibility, identifies potentially malicious domain activity, and provides structured threat reporting without interfering with normal network operations.
 
 ### Specific Objectives
 The project will achieve these goals by:

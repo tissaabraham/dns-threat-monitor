@@ -1,7 +1,7 @@
 # Database Module
 
 ## Purpose
-The **Database** module manages all persistent data storage for the threat monitoring system. This is the data persistence layer of the system architecture.
+The **Database** module manages all persistent data storage for the threat monitoring system. In our implementation it acts as the data persistence layer of the architecture and backs the dashboard, reporting, and testing work.
 
 ## Responsibilities
 - Store parsed DNS logs and metadata
