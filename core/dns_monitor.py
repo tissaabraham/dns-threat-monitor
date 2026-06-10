@@ -74,7 +74,7 @@ class DNSThreatMonitor:
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
 
-        logger.info("✓ DNS Threat Monitor initialized successfully")
+        logger.info("DNS Threat Monitor initialized successfully")
 
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals gracefully."""
@@ -95,7 +95,7 @@ class DNSThreatMonitor:
             # Start capture
             self._start_capture()
 
-            logger.info("✓ DNS Threat Monitor started successfully")
+            logger.info("DNS Threat Monitor started successfully")
             logger.info("Monitoring DNS traffic... Press Ctrl+C to stop")
 
             # Keep main thread alive
@@ -118,7 +118,7 @@ class DNSThreatMonitor:
         if hasattr(self, 'database'):
             self.database.close()
 
-        logger.info("✓ DNS Threat Monitor stopped")
+        logger.info("DNS Threat Monitor stopped")
 
     def _initialize_blacklist(self):
         """Initialize the blacklist with local and remote sources."""
@@ -127,15 +127,17 @@ class DNSThreatMonitor:
         # Load local threats file
         try:
             self.blacklist.load_from_file(self.config.THREATS_FILE)
-            logger.info(f"✓ Loaded local threats from {self.config.THREATS_FILE}")
+            logger.info(f"Loaded local threats from {self.config.THREATS_FILE}")
         except FileNotFoundError:
             logger.warning(f"Local threats file not found: {self.config.THREATS_FILE}")
 
-        # Start auto-refresh from remote sources
+        # Load remote feeds first, THEN start refresh cycle
+        # Otherwise can cause issues with not having loaded info on startup.
         if self.config.ENABLE_REMOTE_BLACKLIST:
             for url in self.config.REMOTE_BLACKLIST_URLS:
-                self.blacklist.start_auto_refresh(url)
-                logger.info(f"✓ Started auto-refresh from {url}")
+                self.blacklist.load_from_url_sync(url)  # wait for completion
+                self.blacklist.start_auto_refresh(url)  # THEN start background refresh
+                logger.info(f"Started auto-refresh from {url}")
 
     def _start_processing_threads(self):
         """Start the event processing threads."""
@@ -149,7 +151,7 @@ class DNSThreatMonitor:
                 daemon=True
             )
             thread.start()
-            logger.info(f"✓ Started processing thread {i+1}")
+            logger.info(f"Started processing thread {i+1}")
 
     def _start_capture(self):
         """Start the DNS traffic capture."""
@@ -162,7 +164,7 @@ class DNSThreatMonitor:
             daemon=True
         )
         capture_thread.start()
-        logger.info("✓ DNS capture started")
+        logger.info("DNS capture started")
 
     def _capture_worker(self):
         """Worker thread for DNS traffic capture."""

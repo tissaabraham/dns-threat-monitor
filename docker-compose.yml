@@ -13,19 +13,23 @@ services:
     restart: unless-stopped
 
     ports:
-      - "5000:5000" #Port the dashboard is running on.
+      - "127.0.0.1:5000:5000" # Port the dashboard is running on.
+    # When using WSL, having issues with port being exposed correctly....
+    # Html loads though, so it should be okay.
+    # Using Powershell to force the port to be publically available is good.
 
     volumes:
-      # Mount the database file outside the container so data persists even if the container is rebuilt
+      # Mount the database file outside the container so data will persist even if the container is rebuilt
       - ./data:/app/data
 
-      # Mount threats.txt so we can edit it without rebuilding
+      # Mount threats.txt so we can edit it without rebuilding everything
       - ./threats.txt:/app/threats.txt
 
     # Show logs in real time
     tty: true
 
     # Checks the container every 30 seconds to make sure it's still working, not just running.
+    # Had issues where it was running but everything had stopped working
     healthcheck:
       test: ["CMD", "ss", "-tulpn"]
       interval: 30s
