@@ -10,11 +10,11 @@
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          v                       v                       v
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Database      │    │   Dashboard     │    │   Alerting      │
-│   (storage +    │    │   (web UI)      │    │   (email)        │
-│    queries)     │    │                 │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────┐    ┌─────────────────┐
+│   Database      │    │   Dashboard     │
+│   (storage +    │    │   (web UI)      │
+│    queries)     │    │                 │
+└─────────────────┘    └─────────────────┘
 ```
 
 ## Core Components
@@ -148,7 +148,6 @@ All system configuration is centralized in the `Config` class:
 - Detection thresholds and rules
 - Blacklist refresh intervals
 - Performance limits
-- Email alerting settings
 
 ## Data Flow
 
@@ -156,7 +155,7 @@ All system configuration is centralized in the `Config` class:
 2. **Parse**: Raw log lines converted to `DnsEvent` objects
 3. **Detect**: Events analyzed against rules and blacklist
 4. **Store**: Events and alerts saved to SQLite database
-5. **Alert**: High-severity threats trigger notifications
+5. **Alert**: High-severity threats are stored and shown on the dashboard
 
 ## API Usage Examples
 

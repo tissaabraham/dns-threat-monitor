@@ -115,6 +115,34 @@ def api_severity_distribution():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/alerts/<int:alert_id>/status', methods=['POST'])
+def api_update_alert_status(alert_id):
+    """Update the status of an alert and record the change in history."""
+    try:
+        data = request.get_json(force=True) or {}
+        new_status = data.get('status', '').strip()
+        notes = data.get('notes', '').strip() or None
+        valid_statuses = {'new', 'acknowledged', 'resolved', 'archived'}
+        if new_status not in valid_statuses:
+            return jsonify({'error': f'Invalid status. Must be one of: {sorted(valid_statuses)}'}), 400
+        success = db.update_alert_status(alert_id, new_status, notes)
+        if not success:
+            return jsonify({'error': 'Alert not found'}), 404
+        return jsonify({'ok': True, 'alert_id': alert_id, 'new_status': new_status})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/alerts/<int:alert_id>/history')
+def api_alert_history(alert_id):
+    """Get the full status-change history for a single alert."""
+    try:
+        history = db.get_alert_history(alert_id)
+        return jsonify(history)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.errorhandler(404)
 def not_found(e):
     """Handle 404 errors."""

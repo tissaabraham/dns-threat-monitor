@@ -83,7 +83,7 @@ class ProcessingPipeline:
             # Step 3: Store the event and alert
             self._store_event_and_alert(event, alert)
 
-            # Step 4: Return alert for further processing (notifications, etc.)
+            # Step 4: Return alert for further processing
             return alert
 
     def _parse_event(self, source: str, raw_line: str) -> Optional[DnsEvent]:

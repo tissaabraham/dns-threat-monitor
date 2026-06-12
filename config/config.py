@@ -101,28 +101,6 @@ class Config:
     DASHBOARD_UPDATE_INTERVAL = 30
 
     # ============================================================================
-    # EMAIL ALERTING CONFIGURATION
-    # ============================================================================
-
-    # Enable email notifications
-    ENABLE_EMAIL_ALERTS = False
-
-    # SMTP settings
-    SMTP_SERVER = "smtp.gmail.com"
-    SMTP_PORT = 587
-    SMTP_USERNAME = ""
-    SMTP_PASSWORD = ""
-    SMTP_USE_TLS = True
-
-    # Email settings
-    ALERT_EMAIL_FROM = "dns-monitor@example.com"
-    ALERT_EMAIL_TO = ["admin@example.com"]
-    ALERT_EMAIL_SUBJECT = "DNS Threat Monitor Alert"
-
-    # Alert thresholds for email notifications
-    EMAIL_ALERT_SEVERITY = "High"  # Send emails for High severity alerts
-
-    # ============================================================================
     # PERFORMANCE CONFIGURATION
     # ============================================================================
 

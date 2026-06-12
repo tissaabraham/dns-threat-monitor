@@ -233,7 +233,10 @@ class DatabaseManager:
                 LIMIT ?
             ''', (hours, limit))
             
-            return [dict(row) for row in cursor.fetchall()]
+            rows = [dict(row) for row in cursor.fetchall()]
+            for row in rows:
+                row['status'] = 'Threat' if row.get('threat_score', 0) > 0 else 'Clean'
+            return rows
             
         except sqlite3.Error as e:
             print(f"✗ Error retrieving DNS logs: {e}")
@@ -349,6 +352,19 @@ class DatabaseManager:
             VALUES (?, ?, ?, ?, ?)
         ''', (alert_id, old_status or '', new_status, datetime.now(timezone.utc).isoformat(), notes))
 
+    def _process_alert_row(self, row: dict) -> dict:
+        """
+        Parses rules_triggered from a JSON string. Sets rule_name, score, and rules_triggered list on the row.
+        """
+        try:
+            rules = json.loads(row.get('rules_triggered', '[]') or '[]')
+        except (json.JSONDecodeError, TypeError):
+            rules = []
+        row['rules_triggered'] = rules
+        row['rule_name'] = ', '.join(rules) if rules else '-'
+        row['score'] = row.get('threat_score')
+        return row
+
     def get_active_alerts(self, limit: int = 50) -> List[dict]:
         """
         Retrieve active alerts (not yet resolved or archived).
@@ -368,7 +384,7 @@ class DatabaseManager:
                 LIMIT ?
             ''', (limit,))
             
-            return [dict(row) for row in cursor.fetchall()]
+            return [self._process_alert_row(dict(row)) for row in cursor.fetchall()]
             
         except sqlite3.Error as e:
             print(f"✗ Error retrieving active alerts: {e}")
@@ -618,7 +634,7 @@ class DatabaseManager:
             query += ' ORDER BY timestamp DESC'
             
             cursor.execute(query, params)
-            return [dict(row) for row in cursor.fetchall()]
+            return [self._process_alert_row(dict(row)) for row in cursor.fetchall()]
             
         except sqlite3.Error as e:
             print(f"✗ Error searching alerts: {e}")
