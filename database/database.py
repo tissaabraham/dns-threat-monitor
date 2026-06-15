@@ -4,8 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional, List
 import json
-# Import data model classes (Alert, DnsEvent, ThreatCacheEntry) from dataModels.py
-# These classes define the structure for DNS events, alerts, and threat cache entries
+# Import data models for DNS events, alerts, and threats
 from .dataModels import Alert, DnsEvent, ThreatCacheEntry
 
 # ============================================================================
@@ -18,7 +17,7 @@ class DatabaseManager:
     Handles initialization, CRUD operations, and queries for the dashboard.
     """
 
-    # Database file path - stored in the project root
+    # Path to the main SQLite database file in the project root
     DB_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dns_threat_monitor.db')
 
     def __init__(self):
@@ -32,8 +31,9 @@ class DatabaseManager:
         
         When the application starts, check if the database exists.
         If not, automatically create the required tables.
-        This ensures the system is self-initialising and easy to deploy.
+        The system is self-initialising and easy to deploy.
         """
+        # Set up all tables and indexes if they are missing
         try:
             # Connect to the database (creates it if it doesn't exist)
             self.connection = sqlite3.connect(self.DB_FILE, check_same_thread=False)
@@ -145,23 +145,24 @@ class DatabaseManager:
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_rules_name ON rules(name)')
 
             self.connection.commit()
-            print(f"✓ Database initialized successfully at {self.DB_FILE}")
+            print(f"Database initialized successfully at {self.DB_FILE}")
 
         except sqlite3.Error as e:
-            print(f"✗ Database initialization error: {e}")
+            print(f"Database initialization error: {e}")
             raise
 
     # ========================================================================
     # DNS LOGS OPERATIONS (Section 6.3.2)
     # ========================================================================
 
+    # Save one DNS query or response into the database
     def store_dns_log(self, event: DnsEvent, threat_score: int = 0) -> int:
         """
         6.3.2 Storing DNS Logs
         
         All DNS queries are stored in the dns_logs table.
         Each entry includes: Timestamp, Source IP, Domain, Query type, Response status.
-        This ensures full visibility and supports historical analysis.
+        The system provides full visibility and supports historical analysis.
         
         Args:
             event: DnsEvent object containing DNS query/response data
@@ -243,6 +244,7 @@ class DatabaseManager:
     # ALERT OPERATIONS (Section 6.3.3 & 6.3.4)
     # ========================================================================
 
+    # Save a new alert linked to a DNS log entry
     def store_alert(self, alert: Alert, dns_log_id: int) -> int:
         """
         6.3.3 Alert Generation
@@ -402,6 +404,7 @@ class DatabaseManager:
     # THREAT CACHE OPERATIONS (Section 6.3.5)
     # ========================================================================
 
+    # Save or update a known malicious domain in the local cache
     def store_threat_cache_entry(self, threat: ThreatCacheEntry) -> int:
         """
         6.3.5 Threat Intelligence Cache
@@ -475,6 +478,7 @@ class DatabaseManager:
     # DASHBOARD INTEGRATION (Section 6.5)
     # ========================================================================
 
+    # Build summary numbers for the dashboard view
     def get_dashboard_summary(self) -> dict:
         """
         6.5 Database Access and Dashboard Integration
@@ -547,6 +551,7 @@ class DatabaseManager:
         Returns:
             List of matching DNS log records
         """
+        # Let the dashboard search DNS logs using simple filters
         try:
             cursor = self.connection.cursor()
             query = '''
@@ -591,6 +596,7 @@ class DatabaseManager:
         Returns:
             List of matching alert records
         """
+        # Let the dashboard search alerts using simple filters
         try:
             cursor = self.connection.cursor()
             query = '''
@@ -628,7 +634,7 @@ class DatabaseManager:
         """Close database connection."""
         if self.connection:
             self.connection.close()
-            print("✓ Database connection closed")
+            print("Database connection closed")
 
 
 # ============================================================================
@@ -650,7 +656,7 @@ if __name__ == "__main__":
         resolved_ips=["93.184.216.34"]
     )
     dns_log_id = db.store_dns_log(event, threat_score=0)
-    print(f"✓ Stored DNS log with ID: {dns_log_id}")
+    print(f"Stored DNS log with ID: {dns_log_id}")
     
     # Example 2: Store an alert
     alert = Alert(
@@ -662,11 +668,11 @@ if __name__ == "__main__":
         rules_triggered=["high_query_rate", "known_malicious_domain"]
     )
     alert_id = db.store_alert(alert, dns_log_id)
-    print(f"✓ Stored alert with ID: {alert_id}")
+    print(f"Stored alert with ID: {alert_id}")
     
     # Example 3: Update alert status
     db.update_alert_status(alert_id, "acknowledged", "Investigating suspicious domain")
-    print(f"✓ Updated alert status to acknowledged")
+    print(f"Updated alert status to acknowledged")
     
     # Example 4: Store a threat cache entry
     threat = ThreatCacheEntry(
@@ -676,10 +682,10 @@ if __name__ == "__main__":
         last_updated=datetime.now(timezone.utc)
     )
     db.store_threat_cache_entry(threat)
-    print(f"✓ Cached malicious domain")
+    print(f"Cached malicious domain")
     
     # Example 5: Get dashboard summary
     summary = db.get_dashboard_summary()
-    print(f"✓ Dashboard Summary: {summary}")
+    print(f"Dashboard Summary: {summary}")
     
     db.close()

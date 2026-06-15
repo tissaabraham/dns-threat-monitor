@@ -16,18 +16,18 @@ This project focuses on the design and implementation of a passive monitoring an
 
 **The goal of the project is to create a tool to monitor home networks and report on suspicious activity detected.** This will be done by the use of DNSMASQ to intercept and forward traffic, which will then be examined using Tshark and events created, with each packet compared against a known list of malicious sites and against several detection rules.
 
-Unlike enterprise networks that commonly deploy Intrusion Detection Systems (IDS), home networks often lack monitoring and visibility. This project aims to demonstrate that a lightweight, cost-effective, and secure monitoring solution can be implemented using accessible hardware and open-source technologies.
+Unlike enterprise networks that commonly deploy Intrusion Detection Systems (IDS), home networks often lack monitoring and visibility. This project demonstrates that a lightweight, cost-effective, and secure monitoring solution can be implemented using accessible hardware and open-source technologies.
 
 ## Motivation
 
 Home networks have changed significantly in recent years. Modern households now include many internet-connected devices such as laptops, smartphones, smart TVs, gaming consoles, and IoT devices like smart lights and home assistants.
 
-Home users rarely have equivalent protection. As a result, there is a clear security gap between enterprise and home network environments. This project directly addresses that gap by designing and implementing a lightweight, passive DNS monitoring and threat detection system that is suitable for home use. The system aims to provide visibility, alerting, and structured detection without requiring expensive hardware or complex configuration.
+Home users rarely have equivalent protection. As a result, there is a clear security gap between enterprise and home network environments. This project addresses that gap by designing and implementing a lightweight, passive DNS monitoring and threat detection system that is suitable for home use. The system provides visibility, alerting, and structured detection without requiring expensive hardware or complex configuration.
 
 ## Goals and Objectives
 
 ### Primary Goal
-The primary goal of this project is to design and implement a lightweight passive DNS monitoring and threat detection system suitable for deployment in a home Wi-Fi network environment. The system aims to improve network visibility, identify potentially malicious domain activity, and provide structured threat reporting without interfering with normal network operations.
+The primary goal of this project was to build a lightweight passive DNS monitoring and threat detection system that can run in a typical home Wi-Fi network environment. The system improves network visibility, identifies potentially malicious domain activity, and provides structured threat reporting without interfering with normal network operations.
 
 ### Specific Objectives
 The project will achieve these goals by:
@@ -154,7 +154,7 @@ The system consists of five main layers:
 A list of malicious domains will be cached and updated every 24 hours from one or more of the following sources:
 
 - **URLhaus** - Frequently updated site with malicious URLs, available in CSV or JSON format. Provides an API for querying.
-- **Malware Domains List** - Comprehensive list of known malicious domains.
+- **Malware Domains List** - Extensive list of known malicious domains.
 - **OpenPhish** - Phishing intelligence service with API access for querying and retrieving malicious domains.
 
 ### Database and Storage
@@ -171,7 +171,7 @@ The system is containerised using Docker to ensure portability and consistent ru
 
 ## Testing Strategy
 
-The system is tested using virtual machines to simulate multiple devices and IP addresses, ensuring realistic network conditions and comprehensive coverage of detection capabilities.
+The system is tested using virtual machines to simulate multiple devices and IP addresses, ensuring realistic network conditions and full coverage of detection capabilities.
 
 ## Project Outcomes
 

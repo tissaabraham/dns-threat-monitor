@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The **Docker** module contains containerization configuration and deployment scripts. This enables consistent, portable deployment of the threat monitoring system across different environments.
+The **Docker** module contains containerization configuration and deployment scripts. Docker enables consistent, portable deployment of the threat monitoring system across different environments.
 
 ## Responsibilities
 
