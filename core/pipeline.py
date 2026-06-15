@@ -40,12 +40,13 @@ class ProcessingPipeline:
             rule_engine: Rule engine instance
             detector: Threat detector instance
         """
+        # Keep references to all core components
         self.database = database
         self.blacklist = blacklist
         self.rule_engine = rule_engine
         self.detector = detector
 
-        # Pipeline statistics
+        # Simple counters to track how the pipeline behaves
         self.stats = {
             'events_processed': 0,
             'alerts_generated': 0,
@@ -68,19 +69,19 @@ class ProcessingPipeline:
         """
         with Timer("process_dns_event", logger):
 
-            # Step 1: Parse the raw line into a DnsEvent
+            # Step 1: Turn the raw log line into a DnsEvent
             event = self._parse_event(source, raw_line)
             if not event:
                 return None
 
-            # Step 2: Analyze the event for threats
+            # Step 2: Check the event for possible threats
             alert = self._analyze_event(event)
             if not alert:
                 # Store clean event with no threat score
                 self._store_event(event, 0)
                 return None
 
-            # Step 3: Store the event and alert
+            # Step 3: Store both the event and the alert in the database
             self._store_event_and_alert(event, alert)
 
             # Step 4: Return alert for further processing
@@ -98,6 +99,7 @@ class ProcessingPipeline:
             DnsEvent object or None if parsing failed
         """
         try:
+            # Use shared parser to understand the raw log line
             event = parse_line(source, raw_line)
             if event:
                 self.stats['events_processed'] += 1
@@ -123,6 +125,7 @@ class ProcessingPipeline:
             Alert object if threat detected, None otherwise
         """
         try:
+            # Use detector to combine rules and blacklist checks
             alert = self.detector.analyse(event)
             if alert:
                 self.stats['alerts_generated'] += 1
@@ -142,6 +145,7 @@ class ProcessingPipeline:
             threat_score: Threat score for the event
         """
         try:
+            # Write the DNS event to the database
             self.database.store_dns_log(event, threat_score)
             logger.debug(f"Stored event: {event.domain}")
         except Exception as e:
@@ -157,10 +161,10 @@ class ProcessingPipeline:
             alert: Alert to store
         """
         try:
-            # Store the DNS log first
+            # Store the DNS log first with its threat score
             dns_log_id = self.database.store_dns_log(event, alert.score)
 
-            # Store the alert linked to the DNS log
+            # Store the alert linked to that DNS log row
             self.database.store_alert(alert, dns_log_id)
 
             logger.info(f"Stored alert: {alert.domain} (ID: {dns_log_id})")
@@ -176,10 +180,12 @@ class ProcessingPipeline:
         Returns:
             Dictionary with processing statistics
         """
+        # Return a copy so callers cannot change our counters directly
         return self.stats.copy()
 
     def reset_stats(self):
         """Reset pipeline statistics counters."""
+        # Clear all counters back to zero
         self.stats = {
             'events_processed': 0,
             'alerts_generated': 0,
@@ -204,13 +210,13 @@ class PipelineFactory:
         """
         logger.info("Creating processing pipeline...")
 
-        # Initialize all components
+        # Initialize all components used by the pipeline
         database = DatabaseManager()
         blacklist = Blacklist()
         rule_engine = RuleEngine()
         detector = Detector(blacklist, rule_engine)
 
-        # Create and return pipeline
+        # Create and return a configured pipeline instance
         pipeline = ProcessingPipeline(database, blacklist, rule_engine, detector)
 
         logger.info("Processing pipeline created successfully")

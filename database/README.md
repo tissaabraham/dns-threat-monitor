@@ -1,7 +1,7 @@
 # Database Module
 
 ## Purpose
-The **Database** module manages all persistent data storage for the threat monitoring system. This is the data persistence layer of the system architecture.
+The **Database** module manages all persistent data storage for the threat monitoring system. In our implementation it acts as the data persistence layer of the architecture and backs the dashboard, reporting, and testing work.
 
 ## Responsibilities
 - Store parsed DNS logs and metadata
@@ -419,11 +419,11 @@ Record inserted into dns_logs table
 ```
 
 **Why It Matters**:
-- ✅ Complete visibility of network DNS activity
-- ✅ Historical record for investigation
-- ✅ Supports trend analysis
-- ✅ Links to alerts for correlation
-- ✅ Enables forensic analysis
+- Complete visibility of network DNS activity
+- Historical record for investigation
+- Supports trend analysis
+- Links to alerts for correlation
+- Enables forensic analysis
 
 **Indexes** (for fast searching):
 - `idx_dns_logs_timestamp` - Search by time
@@ -541,11 +541,11 @@ Entry added to alert_history (status: "new")
 ```
 
 **Why It Matters**:
-- ✅ Tracks all detected threats
-- ✅ Shows severity for prioritization
-- ✅ Records which rules detected threat
-- ✅ Tracks investigation status
-- ✅ Enables alert management workflow
+- Tracks all detected threats
+- Shows severity for prioritization
+- Records which rules detected threat
+- Tracks investigation status
+- Enables alert management workflow
 
 **Indexes** (for fast searching):
 - `idx_alerts_timestamp` - Search by time
@@ -652,11 +652,11 @@ alert_history entry added
 ```
 
 **Why It Matters**:
-- ✅ Complete investigation timeline
-- ✅ Shows what action was taken when
-- ✅ Audit trail for compliance
-- ✅ Can replay entire investigation
-- ✅ Documents decision-making process
+- Complete investigation timeline
+- Shows what action was taken when
+- Audit trail for compliance
+- Can replay entire investigation
+- Documents decision-making process
 
 **Typical Queries**:
 ```python
@@ -758,11 +758,11 @@ Records inserted/updated in threat_cache table
 ```
 
 **Why It Matters**:
-- ✅ Enables instant threat checking
-- ✅ No need for external API calls on every query
-- ✅ Improves system performance significantly
-- ✅ Multiple sources ensure accuracy
-- ✅ 24-hour refresh keeps data current
+- Enables instant threat checking
+- No need for external API calls on every query
+- Improves system performance significantly
+- Multiple sources ensure accuracy
+- 24-hour refresh keeps data current
 
 **Indexes** (for fast searching):
 - `idx_threat_cache_domain` - SUPER FAST domain lookups!
@@ -854,7 +854,7 @@ print(f"Cached domains: {cache_size}")  # e.g., 15000+
 - Entry added to alert_history (Alert created)
 
 **10:15:15** - Dashboard shows alert
-- Security team sees: 🚨 HIGH severity alert
+- Security team sees: HIGH severity alert
 - Domain: phishing-bank.com
 - Device: 192.168.1.50
 
@@ -905,10 +905,10 @@ threat_cache TABLE
 
 ### Data Integrity
 
-- ✅ Foreign keys prevent orphaned records
-- ✅ Unique constraints prevent duplicates
-- ✅ Auto-increment IDs ensure uniqueness
-- ✅ Transactions ensure atomic operations
+- Foreign keys prevent orphaned records
+- Unique constraints prevent duplicates
+- Auto-increment IDs ensure uniqueness
+- Transactions ensure atomic operations
 
 ---
 
@@ -1021,14 +1021,14 @@ history = db.get_alert_history(alert_id=1)
 ## Summary
 
 The database module provides:
-- ✅ Complete DNS activity logging
-- ✅ Security alert tracking
-- ✅ Investigation audit trail
-- ✅ Malicious domain caching
-- ✅ Fast searching and filtering
-- ✅ Dashboard integration
-- ✅ Automatic initialization
-- ✅ Production-ready reliability
+- Complete DNS activity logging
+- Security alert tracking
+- Investigation audit trail
+- Malicious domain caching
+- Fast searching and filtering
+- Dashboard integration
+- Automatic initialization
+- Production-ready reliability
 
 ---
 

@@ -201,7 +201,7 @@ print(f"New alerts: {summary['new_alerts']}")
 
 ## Error Handling
 
-All components include comprehensive error handling:
+All components include error handling:
 - Database operations wrapped in try/catch blocks
 - Network requests include timeouts and retries
 - Invalid data gracefully skipped with logging

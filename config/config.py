@@ -20,16 +20,16 @@ class Config:
     # PATHS AND FILES
     # ============================================================================
 
-    # Project root directory
+    # Get the main project folder
     PROJECT_ROOT = Path(__file__).parent.parent
 
-    # Database
+    # Where the database file is stored
     DATABASE_FILE = PROJECT_ROOT / 'dns_threat_monitor.db'
 
-    # Threat intelligence
+    # File with known malicious domains
     THREATS_FILE = PROJECT_ROOT / 'threats.txt'
 
-    # Logging
+    # Where logs are written
     LOG_FILE = PROJECT_ROOT / 'logs' / 'dns_monitor.log'
     LOG_LEVEL = 'INFO'  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
@@ -37,35 +37,35 @@ class Config:
     # CAPTURE CONFIGURATION
     # ============================================================================
 
-    # Network interface for tshark capture
-    CAPTURE_INTERFACE = "eth0"  # Change this to match your network interface
+    # Network card to capture traffic from
+    CAPTURE_INTERFACE = "eth0"  # Change this to match the network interface
 
-    # DNS log file path (for dnsmasq)
+    # Where dnsmasq writes its logs
     DNSMASQ_LOG_PATH = "/var/log/dnsmasq.log"
 
     # ============================================================================
     # PROCESSING CONFIGURATION
     # ============================================================================
 
-    # Number of processing threads
+    # How many threads to process events
     PROCESSING_THREADS = 2
 
-    # Event queue size
+    # Max events to hold in memory
     QUEUE_SIZE = 1000
 
     # ============================================================================
     # DETECTION CONFIGURATION
     # ============================================================================
 
-    # Rule thresholds
+    # Limits for detection rules
     HIGH_QUERY_RATE_LIMIT = 50  # queries per minute
     NXDOMAIN_LIMIT = 10         # NXDOMAIN replies per minute
     SUBDOMAIN_LIMIT = 20        # unique subdomains per 5 minutes
 
-    # Suspicious TLDs
+    # Domain endings that look suspicious
     SUSPICIOUS_TLDS = {".xyz", ".tk", ".top", ".pw", ".cc", ".su", ".ml", ".site"}
 
-    # DGA detection
+    # Settings for detecting generated domains
     DGA_ENTROPY_THRESHOLD = 3.5
     DGA_MIN_LENGTH = 12
 
@@ -73,16 +73,16 @@ class Config:
     # BLACKLIST CONFIGURATION
     # ============================================================================
 
-    # Enable remote blacklist updates
+    # Whether to update blacklist from internet
     ENABLE_REMOTE_BLACKLIST = True
 
-    # Remote blacklist URLs
+    # Websites to get threat data from
     REMOTE_BLACKLIST_URLS = [
         "https://urlhaus.abuse.ch/downloads/text/",
         "https://raw.githubusercontent.com/openphish/public_feed/refs/heads/main/feed.txt"
     ]
 
-    # Blacklist refresh intervals (in hours)
+    # How often to refresh each source
     BLACKLIST_REFRESH_INTERVALS = {
         "urlhaus.abuse.ch": 24,    # Daily
         "openphish": 12            # Twice daily
@@ -97,39 +97,39 @@ class Config:
     DASHBOARD_PORT = 5000
     DASHBOARD_DEBUG = False
 
-    # Dashboard refresh intervals (in seconds)
+    # How often dashboard updates
     DASHBOARD_UPDATE_INTERVAL = 30
 
     # ============================================================================
     # PERFORMANCE CONFIGURATION
     # ============================================================================
 
-    # Database query limits
+    # Limits on database queries
     MAX_DNS_LOGS_LIMIT = 1000
     MAX_ALERTS_LIMIT = 100
 
-    # Time range defaults (in hours)
+    # Default time range for queries
     DEFAULT_TIME_RANGE_HOURS = 24
 
     # ============================================================================
     # SYSTEM LIMITS
     # ============================================================================
 
-    # Resource limits
+    # System resource limits
     MAX_CPU_PERCENT = 30.0
     MAX_MEMORY_MB = 500
 
-    # Detection time limits (in seconds)
+    # Max time to detect threats
     MAX_DETECTION_TIME = 3.0
 
     # ============================================================================
     # DEVELOPMENT/TESTING CONFIGURATION
     # ============================================================================
 
-    # Enable test mode (uses mock data instead of live capture)
+    # Use fake data for testing
     TEST_MODE = False
 
-    # Test data file
+    # File with test data
     TEST_DATA_FILE = PROJECT_ROOT / 'tests' / 'test_dns_data.txt'
 
     # ============================================================================
@@ -211,4 +211,4 @@ if issues:
     for issue in issues:
         print(f"  - {issue}")
 else:
-    print("✓ Configuration validated successfully")
+    print("Configuration validated successfully")
