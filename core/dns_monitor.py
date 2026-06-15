@@ -1,16 +1,5 @@
-"""
-DNS Threat Monitor - Main Orchestrator
-=====================================
-
-This is the main orchestrator that connects all system components:
-- Capture Layer (dnsmasq + tshark)
-- Parser Layer (input parsing + blacklist)
-- Detection Layer (rules + threat detector)
-- Database Layer (storage + queries)
-
-The system processes DNS traffic in real-time, detects threats,
-and stores results for dashboard access.
-"""
+# Ties together capture, parsing, detection, and storage.
+# Runs capture + processing threads and keeps the main loop alive.
 
 import sys
 import time
@@ -20,7 +9,6 @@ from datetime import datetime, timezone
 from queue import Queue
 from threading import Thread, Event
 
-# Import system components
 from capture.capture_combo import combined_capture
 from parser.blacklist import Blacklist
 from detection.rules import RuleEngine
@@ -29,7 +17,6 @@ from database.database import DatabaseManager
 from config.config import Config
 from core.pipeline import ProcessingPipeline
 
-# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -121,7 +108,7 @@ class DNSThreatMonitor:
         logger.info("DNS Threat Monitor stopped")
 
     def _initialize_blacklist(self):
-        """Initialize the blacklist with local and remote sources."""
+        """Load the threat list from file and start downloading fresh ones from the internet."""
         logger.info("Initializing blacklist...")
 
         # Load threat list from file
@@ -165,7 +152,7 @@ class DNSThreatMonitor:
         logger.info("DNS capture started")
 
     def _capture_worker(self):
-        """Worker thread for DNS traffic capture."""
+        """Reads packets from Stephen's combined_capture and puts them on the queue."""
         try:
             for source, line in combined_capture():
                 if self.stop_event.is_set():
@@ -183,7 +170,7 @@ class DNSThreatMonitor:
             self.stop()
 
     def _process_events_worker(self):
-        """Worker thread for processing DNS events."""
+        """Sits in a loop pulling events off the queue and feeding them to the pipeline."""
         while not self.stop_event.is_set():
             try:
                 # Get event from queue
@@ -204,7 +191,7 @@ class DNSThreatMonitor:
         self.pipeline.process_dns_event(source, line)
 
     def _print_stats(self):
-        """Print current system statistics."""
+        """Show a one-liner with how many events and alerts we've processed so far."""
         # Calculate how long we've been running
         runtime = datetime.now(timezone.utc) - self.stats['start_time']
         hours = runtime.total_seconds() / 3600

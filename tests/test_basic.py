@@ -1,10 +1,5 @@
-"""
-DNS Threat Monitor - Test Suite
-===============================
-
-Unit tests for the DNS Threat Monitor system components.
-Run with: python -m pytest tests/
-"""
+# Basic tests for data models, parser, rules, DB, and a simple integration check.
+# Run with: python -m pytest tests/
 
 import pytest
 import sys

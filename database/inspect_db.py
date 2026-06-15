@@ -1,20 +1,10 @@
 #!/usr/bin/env python3
-"""
-DNS Threat Monitor - Database Schema Inspector
-===============================================
-
-This script displays the complete database structure including:
-- All tables with row counts
-- Column definitions and types
-- Indexes and foreign keys
-- Database statistics
-- Sample data (optional)
-
-Usage:
-    python inspect_db.py              # Show complete schema
-    python inspect_db.py --stats-only # Show only statistics
-    python inspect_db.py --sample     # Show schema + sample data
-"""
+# Dumps the database schema, row counts, indexes, and optionally sample data.
+#
+# Usage:
+#   python inspect_db.py              # full schema
+#   python inspect_db.py --stats-only # row counts only
+#   python inspect_db.py --sample     # schema + sample rows
 
 import sqlite3
 import os

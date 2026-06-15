@@ -1,10 +1,4 @@
-"""
-DNS Threat Monitor Configuration
-================================
-
-Central configuration file for the DNS Threat Monitor system.
-All configurable parameters should be defined here to avoid hardcoding.
-"""
+# Central config file - all tuneable settings live here so nothing is hardcoded elsewhere.
 
 import os
 from pathlib import Path

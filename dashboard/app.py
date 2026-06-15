@@ -14,6 +14,8 @@ app.secret_key = 'dns-monitor-secret-key-change-in-production'
 # Connect to database
 db = DatabaseManager()
 
+# --- Page routes (just serve the HTML templates) ---
+
 @app.route('/')
 def dashboard():
     """Show main dashboard page."""
@@ -40,9 +42,11 @@ def logs():
     """Show logs page."""
     return render_template('logs.html')
 
+# --- API routes (the frontend JS calls these to get data) ---
+
 @app.route('/api/summary')
 def api_summary():
-    """Get stats for dashboard."""
+    """Numbers for the three summary cards at the top of the dashboard."""
     try:
         summary = db.get_dashboard_summary()
         severity_dist = summary.get('severity_distribution', {})
@@ -58,7 +62,7 @@ def api_summary():
 
 @app.route('/api/dns-logs')
 def api_dns_logs():
-    """Get recent DNS queries."""
+    """All DNS logs from last 24hrs - used in the requests modal."""
     try:
         logs = db.get_recent_dns_logs(hours=24, limit=50)
         return jsonify(logs)
@@ -76,7 +80,7 @@ def api_recent_logs():
 
 @app.route('/api/logs')
 def api_logs():
-    """Get logs, filter by date if needed."""
+    """For the logs page - can filter by date."""
     try:
         date_str = request.args.get('date')
         logs = db.get_recent_dns_logs(hours=24 * 365, limit=500)
@@ -97,7 +101,7 @@ def api_live_logs():
 
 @app.route('/api/alerts')
 def api_alerts():
-    """Get all active alerts."""
+    """Active threats page uses this - only shows unresolved ones."""
     try:
         alerts = db.get_active_alerts(limit=50)
         return jsonify(alerts)
@@ -106,7 +110,7 @@ def api_alerts():
 
 @app.route('/api/severity-distribution')
 def api_severity_distribution():
-    """Count alerts by severity."""
+    """How many High/Medium/Low alerts we have. Stephen wanted this for the threats modal."""
     try:
         alerts = db.search_alerts(hours=24)
         severity_dist = {'High': 0, 'Medium': 0, 'Low': 0}
