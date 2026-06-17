@@ -23,16 +23,16 @@ class Config:
     # PATHS AND FILES
     # ============================================================================
 
-    # Project root directory
+    # Get the main project folder
     PROJECT_ROOT = Path(__file__).parent.parent
 
-    # Database
+    # Where the database file is stored
     DATABASE_FILE = PROJECT_ROOT / os.getenv("DB_FILENAME", "dns_threat_monitor.db")
 
-    # Threat intelligence
+    # File with known malicious domains
     THREATS_FILE = PROJECT_ROOT / os.getenv("THREATS_FILENAME", "threats.txt")
 
-    # Logging
+    # Where logs are written
     LOG_FILE = PROJECT_ROOT / 'logs' / os.getenv("LOG_FILENAME", "dns_monitor.log")
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO") # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
@@ -40,8 +40,8 @@ class Config:
     # CAPTURE CONFIGURATION
     # ============================================================================
 
-    # Network interface for tshark capture
-    CAPTURE_INTERFACE = os.getenv("NETWORK_INTERFACE", "eth0")  # Change this to match your network interface
+    # Network card to capture traffic from
+    CAPTURE_INTERFACE = os.getenv("NETWORK_INTERFACE", "eth0")  # Change this to match the network interface
 
     # DNS log file path (for dnsmasq)
     DNSMASQ_LOG_PATH = os.getenv("DNSMASQ_LOG_PATH", "/var/log/dnsmasq.log")
@@ -55,28 +55,27 @@ class Config:
     NXDOMAIN_LIMIT = int(os.getenv("NXDOMAIN_LIMIT", "10"))        # NXDOMAIN replies per minute
     SUBDOMAIN_LIMIT = int(os.getenv("SUBDOMAIN_LIMIT", "20"))        # unique subdomains per 5 minutes
 
-    # DGA detection
+    # Settings for detecting generated domains
     DGA_ENTROPY_THRESHOLD = float(os.getenv("DGA_ENTROPY_THRESHOLD", "3.5"))
     DGA_MIN_LENGTH = int(os.getenv("DGA_MIN_LENGTH", "12"))
 
     # Suspicious TLDs
     SUSPICIOUS_TLDS = {".xyz", ".tk", ".top", ".pw", ".cc", ".su", ".ml", ".site", ".shop"}
 
-
     # ============================================================================
     # BLACKLIST CONFIGURATION
     # ============================================================================
 
-    # Enable remote blacklist updates
+    # Whether to update blacklist from internet
     ENABLE_REMOTE_BLACKLIST = os.getenv("ENABLE_REMOTE_BLACKLIST", "true").lower() == "true"    #Has to be converted to a boolean
 
-    # Remote blacklist URLs
+    # Websites to get threat data from
     REMOTE_BLACKLIST_URLS = [
         "https://urlhaus.abuse.ch/downloads/text/",
         "https://raw.githubusercontent.com/openphish/public_feed/refs/heads/main/feed.txt"
     ]
 
-    # Blacklist refresh intervals (in hours)
+    # How often to refresh each source
     BLACKLIST_REFRESH_URLHAUS = int(os.getenv("URLHAUS_REFRESH_HOURS", "24"))
     BLACKLIST_REFRESH_OPENPHISH = int(os.getenv("OPENPHISH_REFRESH_HOURS", "12"))
 
@@ -89,29 +88,29 @@ class Config:
     DASHBOARD_PORT = int(os.getenv("DASHBOARD_PORT", "5000"))
     DASHBOARD_DEBUG = os.getenv("DASHBOARD_DEBUG", "false").lower() == "true"
 
-    # Dashboard refresh intervals (in seconds)
+    # How often dashboard updates
     DASHBOARD_UPDATE_INTERVAL = int(os.getenv("DASHBOARD_UPDATE_INTERVAL", "30"))
 
     # ============================================================================
     # EMAIL ALERTING CONFIGURATION
     # ============================================================================
 
-    # Enable email notifications
+    # Turn on email alerts
     ENABLE_EMAIL_ALERTS = os.getenv("ENABLE_EMAIL_ALERTS", "false").lower() == "true"
 
-    # SMTP settings
+    # Email server settings
     SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
     SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")  # sensitive - important to be in .env
     SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
 
-    # Email settings
+    # Who sends and receives alerts
     ALERT_EMAIL_FROM = os.getenv("ALERT_EMAIL_FROM", "dns-monitor@example.com")
     ALERT_EMAIL_TO = os.getenv("ALERT_EMAIL_TO", "admin@example.com").split(",")
     ALERT_EMAIL_SUBJECT = os.getenv("ALERT_EMAIL_SUBJECT", "DNS Threat Monitor Alert")
 
-    # Alert thresholds for email notifications
+    # Only send high severity alerts
     EMAIL_ALERT_SEVERITY = os.getenv("EMAIL_ALERT_SEVERITY", "HIGH")
 
     # ============================================================================
@@ -128,28 +127,28 @@ class Config:
     MAX_DNS_LOGS_LIMIT = int(os.getenv("MAX_DNS_LOGS_LIMIT", "1000"))
     MAX_ALERTS_LIMIT = int(os.getenv("MAX_ALERTS_LIMIT", "100"))
 
-    # Time range defaults (in hours)
+    # Default time range for queries
     DEFAULT_TIME_RANGE_HOURS = int(os.getenv("DEFAULT_TIME_RANGE_HOURS", "24"))
 
     # ============================================================================
     # SYSTEM LIMITS
     # ============================================================================
 
-    # Resource limits
+    # System resource limits
     MAX_CPU_PERCENT = float(os.getenv("MAX_CPU_PERCENT", "30.0"))
     MAX_MEMORY_MB = int(os.getenv("MAX_MEMORY_MB", "500"))
 
-    # Detection time limits (in seconds)
+    # Max time to detect threats
     MAX_DETECTION_TIME = float(os.getenv("MAX_DETECTION_TIME", "3.0"))
 
     # ============================================================================
     # DEVELOPMENT/TESTING CONFIGURATION
     # ============================================================================
 
-    # Enable test mode (uses mock data instead of live capture)
+    # Use fake data for testing
     TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
 
-    # Test data file
+    # File with test data
     TEST_DATA_FILE = PROJECT_ROOT / 'tests' / os.getenv("TEST_DATA_FILE", "test_dns_data.txt")
 
     # ============================================================================
@@ -231,4 +230,4 @@ if issues:
     for issue in issues:
         print(f"  - {issue}")
 else:
-    print("✓ Configuration validated successfully")
+    print("Configuration validated successfully")

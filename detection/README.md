@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The **Detection Engine** module applies threat detection logic to identify malicious and suspicious DNS activity. This is the core analysis layer of the system architecture.
+The **Detection Engine** module applies the actual threat detection logic that flags malicious and suspicious DNS activity. It is the core analysis layer of the system and is where most of the "security decisions" are made.
 
 ## Responsibilities
 
@@ -30,7 +30,7 @@ Apply detection rules to identify suspicious patterns:
 
 ## Threat Scoring
 
-Events are scored and classified into severity levels:
+Events are scored and then classified into severity levels:
 1. **Not-significant** - No or minimal threat indicators
 2. **Low Severity** - Minor suspicious activity
 3. **Medium Severity** - Notable suspicious activity

@@ -212,18 +212,18 @@ if __name__ == "__main__":
     test_models = TestDataModels()
     test_models.test_dns_event_creation()
     test_models.test_alert_creation()
-    print("✓ Data model tests passed")
+    print("Data model tests passed")
 
     # Test parser
     test_parser = TestInputParser()
     test_parser.test_parse_dnsmasq_query()
     test_parser.test_normalise_domain()
-    print("✓ Parser tests passed")
+    print("Parser tests passed")
 
     # Test rules
     test_rules = TestRuleEngine()
     test_rules.test_suspicious_tld_detection()
     test_rules.test_normal_domain()
-    print("✓ Rule engine tests passed")
+    print("Rule engine tests passed")
 
-    print("All basic tests passed! ✅")
+    print("All basic tests passed!")

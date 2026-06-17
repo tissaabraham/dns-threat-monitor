@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The **Capture** module is responsible for capturing DNS traffic from the home network. This is the first layer of the system architecture and serves as the data collection point.
+The **Capture** module watches DNS traffic from the home network and feeds it into the rest of the system. In practice we used it as the first layer of the architecture: a simple data collection point that sits in front of the parser and detector.
 
 ## Responsibilities
 
@@ -25,7 +25,7 @@ The **Capture** module is responsible for capturing DNS traffic from the home ne
 
 ## Output
 
-Captured DNS packets and traffic logs are forwarded to the **Parser** module for extraction and processing.
+Captured DNS packets and traffic logs are forwarded to the **Parser** module, where they are broken down into structured events for later detection and storage.
 
 ## From Stephen's notes:
 

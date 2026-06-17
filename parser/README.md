@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The **Parser** module extracts relevant DNS metadata from captured network traffic. This is the second layer of the system architecture and handles data transformation and normalization.
+The **Parser** module pulls out the useful DNS metadata from captured network traffic. It acts as the second layer of the system and focuses on turning raw packets into clean, structured data that the rest of the pipeline can work with.
 
 ## Responsibilities
 
