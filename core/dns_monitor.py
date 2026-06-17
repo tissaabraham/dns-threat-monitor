@@ -51,17 +51,17 @@ class DNSThreatMonitor:
         """Initialize the DNS Threat Monitor system."""
         logger.info("Initializing DNS Threat Monitor...")
 
-        # Load configuration
+        # Load settings
         self.config = Config()
 
-        # Initialize components
+        # Set up the main components
         self.database = DatabaseManager()
         self.blacklist = Blacklist()
         self.rule_engine = RuleEngine()
         self.detector = Detector(self.blacklist, self.rule_engine)
         self.pipeline = ProcessingPipeline(self.database, self.blacklist, self.rule_engine, self.detector)
 
-        # Processing queue and control
+        # Queue for events and stop signal
         self.event_queue = Queue(maxsize=self.config.QUEUE_SIZE)
         self.stop_event = Event()
 
@@ -72,12 +72,12 @@ class DNSThreatMonitor:
             for issue in issues:
                 logger.warning(f"Config issue: {issue}")
 
-        # Statistics (counters are owned by the pipeline; only start_time lives here)
+        # Track when we started
         self.stats = {
             'start_time': datetime.now(timezone.utc)
         }
 
-        # Setup signal handlers for graceful shutdown
+        # Handle Ctrl+C gracefully
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
 
@@ -131,7 +131,7 @@ class DNSThreatMonitor:
         """Initialize the blacklist with local and remote sources."""
         logger.info("Initializing blacklist...")
 
-        # Load local threats file
+        # Load threat list from file
         try:
             self.blacklist.load_from_file(self.config.THREATS_FILE)
             logger.info(f"Loaded local threats from {self.config.THREATS_FILE}")
@@ -155,7 +155,7 @@ class DNSThreatMonitor:
         """Start the event processing threads."""
         logger.info("Starting processing threads...")
 
-        # Start multiple processing threads for better throughput
+        # Run multiple threads to process faster
         for i in range(self.config.PROCESSING_THREADS):
             thread = Thread(
                 target=self._process_events_worker,
@@ -169,7 +169,7 @@ class DNSThreatMonitor:
         """Start the DNS traffic capture."""
         logger.info("Starting DNS capture...")
 
-        # Start capture in a separate thread
+        # Run capture in background
         capture_thread = Thread(
             target=self._capture_worker,
             name="Capture",
@@ -185,7 +185,7 @@ class DNSThreatMonitor:
                 if self.stop_event.is_set():
                     break
 
-                # Put event in processing queue
+                # Add to queue for processing
                 try:
                     self.event_queue.put((source, line), timeout=1)
                 except queue.Full:
@@ -206,14 +206,14 @@ class DNSThreatMonitor:
                 continue
 
             try:
-                # Process the event
+                # Send to pipeline for analysis
                 self._process_dns_event(source, line)
             except Exception as e:
                 logger.error(f"Error processing event: {e}")
 
             finally:
                 # Mark task as done
-                # Timeouts now separated from processing errors, bugs should now show up in the logs
+                # Timeouts now separated from processing errors, bugs should now show up in the logs instead of being swallowed.
                 self.event_queue.task_done()
 
     def _process_dns_event(self, source: str, line: str):
@@ -222,6 +222,7 @@ class DNSThreatMonitor:
 
     def _print_stats(self):
         """Print current system statistics."""
+        # Calculate how long we've been running
         runtime = datetime.now(timezone.utc) - self.stats['start_time']
         hours = runtime.total_seconds() / 3600
         p = self.pipeline.get_pipeline_stats()
@@ -230,7 +231,7 @@ class DNSThreatMonitor:
             eps = p['events_processed'] / hours
             aps = p['alerts_generated'] / hours
 
-            print(f"\r📊 Events: {p['events_processed']} "
+            print(f"\rEvents: {p['events_processed']} "
                   f"Alerts: {p['alerts_generated']} "
                   f"Parse errors: {p['parse_errors']} "
                   f"Rate: {eps:.1f} EPS, {aps:.2f} APS", end='', flush=True)
