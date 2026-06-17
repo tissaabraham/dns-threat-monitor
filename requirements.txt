@@ -1,3 +1,5 @@
-Non built-in libraries needed for the project:
+#Non built-in libraries needed for the project:
 
-requests    (Need for the blacklist to work)
+requests    #(Need for the blacklist to work)
+flask
+python-dotenv
