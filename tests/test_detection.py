@@ -1,9 +1,4 @@
-"""
-DNS Threat Monitor - Detection Tests
-===================================
-
-Unit tests for the threat detection components.
-"""
+# Tests for rule engine, threat detector, and detection integration.
 
 import pytest
 from datetime import datetime, timezone

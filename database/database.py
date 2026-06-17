@@ -4,12 +4,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional, List
 import json
-# Import data models for DNS events, alerts, and threats
 from .dataModels import Alert, DnsEvent, ThreatCacheEntry
 
-# ============================================================================
-# DATABASE MANAGER - Core DATABASE OPERATIONS
-# ============================================================================
 
 class DatabaseManager:
     """
@@ -17,7 +13,6 @@ class DatabaseManager:
     Handles initialization, CRUD operations, and queries for the dashboard.
     """
 
-    # Path to the main SQLite database file in the project root
     DB_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dns_threat_monitor.db')
 
     def __init__(self):
@@ -26,18 +21,10 @@ class DatabaseManager:
         self.initialize_database()
 
     def initialize_database(self):
-        """
-        6.2 Database Initialisation
-        
-        When the application starts, check if the database exists.
-        If not, automatically create the required tables.
-        The system is self-initialising and easy to deploy.
-        """
-        # Set up all tables and indexes if they are missing
+        """Creates all tables and indexes if they don't already exist."""
         try:
-            # Connect to the database (creates it if it doesn't exist)
             self.connection = sqlite3.connect(self.DB_FILE, check_same_thread=False)
-            self.connection.row_factory = sqlite3.Row  # Return rows as dictionaries
+            self.connection.row_factory = sqlite3.Row
             cursor = self.connection.cursor()
 
             # Create dns_logs table
@@ -151,26 +138,8 @@ class DatabaseManager:
             print(f"Database initialization error: {e}")
             raise
 
-    # ========================================================================
-    # DNS LOGS OPERATIONS (Section 6.3.2)
-    # ========================================================================
-
-    # Save one DNS query or response into the database
     def store_dns_log(self, event: DnsEvent, threat_score: int = 0) -> int:
-        """
-        6.3.2 Storing DNS Logs
-        
-        All DNS queries are stored in the dns_logs table.
-        Each entry includes: Timestamp, Source IP, Domain, Query type, Response status.
-        The system provides full visibility and supports historical analysis.
-        
-        Args:
-            event: DnsEvent object containing DNS query/response data
-            threat_score: Initial threat score assigned by detection engine
-            
-        Returns:
-            ID of the inserted record
-        """
+        """Store a DNS event in dns_logs. Returns the new row ID."""
         try:
             cursor = self.connection.cursor()
             resolved_ips_json = json.dumps(event.resolved_ips)
@@ -211,20 +180,11 @@ class DatabaseManager:
             return dns_log_id
 
         except sqlite3.Error as e:
-            print(f"✗ Error storing DNS log: {e}")
+            print(f"Error storing DNS log: {e}")
             raise
 
     def get_recent_dns_logs(self, hours: int = 24, limit: int = 100) -> List[dict]:
-        """
-        Retrieve recent DNS logs for dashboard display.
-        
-        Args:
-            hours: Number of hours to look back
-            limit: Maximum number of records to return
-            
-        Returns:
-            List of DNS log records
-        """
+        """Fetch the most recent DNS log entries within the given time window."""
         try:
             cursor = self.connection.cursor()
             cursor.execute('''
@@ -234,32 +194,19 @@ class DatabaseManager:
                 LIMIT ?
             ''', (hours, limit))
             
-            return [dict(row) for row in cursor.fetchall()]
+            rows = [dict(row) for row in cursor.fetchall()]
+            # Might help Stephen when he's debugging rules - quick way to see if something scored
+            for row in rows:
+                row['status'] = 'Threat' if row.get('threat_score', 0) > 0 else 'Clean'
+            return rows
             
         except sqlite3.Error as e:
-            print(f"✗ Error retrieving DNS logs: {e}")
+            print(f"Error retrieving DNS logs: {e}")
             raise
 
-    # ========================================================================
-    # ALERT OPERATIONS (Section 6.3.3 & 6.3.4)
-    # ========================================================================
-
-    # Save a new alert linked to a DNS log entry
     def store_alert(self, alert: Alert, dns_log_id: int) -> int:
-        """
-        6.3.3 Alert Generation
-        
-        When a DNS event is classified as a potential threat:
-        - Create an alert for medium, high, or severe threats
-        - Store in the alerts table with all relevant fields
-        
-        Args:
-            alert: Alert object containing threat information
-            dns_log_id: Reference to the DNS log that triggered the alert
-            
-        Returns:
-            ID of the inserted alert
-        """
+        """Save an alert linked to dns_log_id. Returns the alert ID.
+        The Alert object comes from Stephen's Detector class."""
         try:
             cursor = self.connection.cursor()
             rules_json = json.dumps(alert.rules_triggered)
@@ -288,62 +235,38 @@ class DatabaseManager:
             return alert_id
             
         except sqlite3.Error as e:
-            print(f"✗ Error storing alert: {e}")
+            print(f"Error storing alert: {e}")
             raise
 
     def update_alert_status(self, alert_id: int, new_status: str, notes: str = None) -> bool:
-        """
-        6.3.4 Alert History Tracking
-        
-        Update alert status and record the change in alert_history.
-        Allows tracking alert lifecycle and maintaining audit history.
-        
-        Args:
-            alert_id: ID of the alert to update
-            new_status: New status (new, acknowledged, resolved, archived)
-            notes: Optional notes about the status change
-            
-        Returns:
-            True if successful, False otherwise
-        """
+        """Update an alert's status and log the change to alert_history."""
         try:
             cursor = self.connection.cursor()
             
-            # Get current status
             cursor.execute('SELECT status FROM alerts WHERE id = ?', (alert_id,))
             result = cursor.fetchone()
             
             if not result:
-                print(f"✗ Alert with ID {alert_id} not found")
+                print(f"Alert with ID {alert_id} not found")
                 return False
             
             old_status = result[0]
             
-            # Update alert status
             cursor.execute('''
                 UPDATE alerts SET status = ? WHERE id = ?
             ''', (new_status, alert_id))
-            
-            # Record the status change in history
+
             self._record_status_change(alert_id, old_status, new_status, notes)
             
             self.connection.commit()
             return True
             
         except sqlite3.Error as e:
-            print(f"✗ Error updating alert status: {e}")
+            print(f"Error updating alert status: {e}")
             raise
 
     def _record_status_change(self, alert_id: int, old_status: Optional[str], new_status: str, notes: str = None):
-        """
-        Internal helper: Record a status change in the alert_history table.
-        
-        Args:
-            alert_id: ID of the alert
-            old_status: Previous status (None if initial creation)
-            new_status: New status
-            notes: Optional notes about the change
-        """
+        """Write a row to alert_history recording the status transition."""
         cursor = self.connection.cursor()
         cursor.execute('''
             INSERT INTO alert_history 
@@ -351,16 +274,21 @@ class DatabaseManager:
             VALUES (?, ?, ?, ?, ?)
         ''', (alert_id, old_status or '', new_status, datetime.now(timezone.utc).isoformat(), notes))
 
+    def _process_alert_row(self, row: dict) -> dict:
+        """
+        Parses rules_triggered from a JSON string. Sets rule_name, score, and rules_triggered list on the row.
+        """
+        try:
+            rules = json.loads(row.get('rules_triggered', '[]') or '[]')
+        except (json.JSONDecodeError, TypeError):
+            rules = []
+        row['rules_triggered'] = rules
+        row['rule_name'] = ', '.join(rules) if rules else '-'
+        row['score'] = row.get('threat_score')
+        return row
+
     def get_active_alerts(self, limit: int = 50) -> List[dict]:
-        """
-        Retrieve active alerts (not yet resolved or archived).
-        
-        Args:
-            limit: Maximum number of alerts to return
-            
-        Returns:
-            List of active alert records
-        """
+        """Returns alerts that are still new or acknowledged (not resolved/archived)."""
         try:
             cursor = self.connection.cursor()
             cursor.execute('''
@@ -370,22 +298,14 @@ class DatabaseManager:
                 LIMIT ?
             ''', (limit,))
             
-            return [dict(row) for row in cursor.fetchall()]
+            return [self._process_alert_row(dict(row)) for row in cursor.fetchall()]
             
         except sqlite3.Error as e:
-            print(f"✗ Error retrieving active alerts: {e}")
+            print(f"Error retrieving active alerts: {e}")
             raise
 
     def get_alert_history(self, alert_id: int) -> List[dict]:
-        """
-        Retrieve the complete history of an alert's status changes.
-        
-        Args:
-            alert_id: ID of the alert
-            
-        Returns:
-            List of status change records
-        """
+        """Returns all status-change entries for a given alert, oldest first."""
         try:
             cursor = self.connection.cursor()
             cursor.execute('''
@@ -397,32 +317,14 @@ class DatabaseManager:
             return [dict(row) for row in cursor.fetchall()]
             
         except sqlite3.Error as e:
-            print(f"✗ Error retrieving alert history: {e}")
+            print(f"Error retrieving alert history: {e}")
             raise
 
-    # ========================================================================
-    # THREAT CACHE OPERATIONS (Section 6.3.5)
-    # ========================================================================
-
-    # Save or update a known malicious domain in the local cache
     def store_threat_cache_entry(self, threat: ThreatCacheEntry) -> int:
-        """
-        6.3.5 Threat Intelligence Cache
-        
-        Store known malicious domains retrieved from external sources.
-        Caching improves performance by avoiding repeated external lookups.
-        Sources: OpenPhish, Spamhaus, Abuse.ch
-        
-        Args:
-            threat: ThreatCacheEntry object containing threat information
-            
-        Returns:
-            ID of the inserted record, or existing ID if domain already cached
-        """
+        """Save a known bad domain so we can quickly check against it later."""
         try:
             cursor = self.connection.cursor()
             
-            # Try to update if domain already exists
             cursor.execute('''
                 UPDATE threat_cache 
                 SET source = ?, threat_type = ?, last_updated = ?
@@ -430,7 +332,6 @@ class DatabaseManager:
             ''', (threat.source, threat.threat_type, threat.last_updated.isoformat(), threat.domain))
             
             if cursor.rowcount == 0:
-                # Domain doesn't exist, insert new record
                 cursor.execute('''
                     INSERT INTO threat_cache 
                     (domain, source, threat_type, last_updated)
@@ -441,26 +342,18 @@ class DatabaseManager:
             return cursor.lastrowid
             
         except sqlite3.Error as e:
-            print(f"✗ Error storing threat cache entry: {e}")
+            print(f"Error storing threat cache entry: {e}")
             raise
 
     def is_domain_malicious(self, domain: str) -> bool:
-        """
-        Quick lookup to check if a domain is in the threat cache.
-        
-        Args:
-            domain: Domain to check
-            
-        Returns:
-            True if domain is in threat cache, False otherwise
-        """
+        """Returns True if the domain is in the local threat cache."""
         try:
             cursor = self.connection.cursor()
             cursor.execute('SELECT id FROM threat_cache WHERE domain = ?', (domain,))
             return cursor.fetchone() is not None
             
         except sqlite3.Error as e:
-            print(f"✗ Error checking threat cache: {e}")
+            print(f"Error checking threat cache: {e}")
             raise
 
     def get_threat_cache_size(self) -> int:
@@ -471,27 +364,11 @@ class DatabaseManager:
             return cursor.fetchone()[0]
             
         except sqlite3.Error as e:
-            print(f"✗ Error getting threat cache size: {e}")
+            print(f"Error getting threat cache size: {e}")
             raise
 
-    # ========================================================================
-    # DASHBOARD INTEGRATION (Section 6.5)
-    # ========================================================================
-
-    # Build summary numbers for the dashboard view
     def get_dashboard_summary(self) -> dict:
-        """
-        6.5 Database Access and Dashboard Integration
-        
-        Provide dashboard with recent activity summary including:
-        - Recent DNS activity
-        - Active alerts
-        - Threat severity distribution
-        - Historical trends
-        
-        Returns:
-            Dictionary with dashboard summary data
-        """
+        """Grabs the numbers for the dashboard - total queries, active alerts, severity breakdown etc."""
         try:
             cursor = self.connection.cursor()
             
@@ -528,30 +405,12 @@ class DatabaseManager:
             }
             
         except sqlite3.Error as e:
-            print(f"✗ Error retrieving dashboard summary: {e}")
+            print(f"Error retrieving dashboard summary: {e}")
             raise
 
-    def search_dns_logs(self, domain: str = None, source_ip: str = None, 
+    def search_dns_logs(self, domain: str = None, source_ip: str = None,
                         threat_level: int = None, hours: int = 24) -> List[dict]:
-        """
-        6.5 Database Access and Dashboard Integration
-        
-        Allow dashboard users to search and filter data by:
-        - Domain name
-        - IP address
-        - Threat level
-        - Time range
-        
-        Args:
-            domain: Filter by domain (substring match)
-            source_ip: Filter by source IP
-            threat_level: Filter by minimum threat score
-            hours: Time range to search (hours back from now)
-            
-        Returns:
-            List of matching DNS log records
-        """
-        # Let the dashboard search DNS logs using simple filters
+        """Search dns_logs with optional filters for domain, IP, threat level, and time range."""
         try:
             cursor = self.connection.cursor()
             query = '''
@@ -578,25 +437,12 @@ class DatabaseManager:
             return [dict(row) for row in cursor.fetchall()]
             
         except sqlite3.Error as e:
-            print(f"✗ Error searching DNS logs: {e}")
+            print(f"Error searching DNS logs: {e}")
             raise
 
-    def search_alerts(self, domain: str = None, source_ip: str = None, 
+    def search_alerts(self, domain: str = None, source_ip: str = None,
                       severity: str = None, status: str = None, hours: int = 24) -> List[dict]:
-        """
-        Search alerts with multiple filter options for dashboard.
-        
-        Args:
-            domain: Filter by domain (substring match)
-            source_ip: Filter by source IP
-            severity: Filter by severity level
-            status: Filter by alert status
-            hours: Time range to search
-            
-        Returns:
-            List of matching alert records
-        """
-        # Let the dashboard search alerts using simple filters
+        """Search alerts with optional filters for domain, IP, severity, status, and time range."""
         try:
             cursor = self.connection.cursor()
             query = '''
@@ -624,10 +470,10 @@ class DatabaseManager:
             query += ' ORDER BY timestamp DESC'
             
             cursor.execute(query, params)
-            return [dict(row) for row in cursor.fetchall()]
+            return [self._process_alert_row(dict(row)) for row in cursor.fetchall()]
             
         except sqlite3.Error as e:
-            print(f"✗ Error searching alerts: {e}")
+            print(f"Error searching alerts: {e}")
             raise
 
     def close(self):
@@ -637,15 +483,9 @@ class DatabaseManager:
             print("Database connection closed")
 
 
-# ============================================================================
-# EXAMPLE USAGE
-# ============================================================================
-
 if __name__ == "__main__":
-    # Example usage of the database manager
     db = DatabaseManager()
-    
-    # Example 1: Store a DNS log
+
     event = DnsEvent(
         timestamp=datetime.now(timezone.utc),
         source_ip="192.168.1.100",
@@ -657,8 +497,7 @@ if __name__ == "__main__":
     )
     dns_log_id = db.store_dns_log(event, threat_score=0)
     print(f"Stored DNS log with ID: {dns_log_id}")
-    
-    # Example 2: Store an alert
+
     alert = Alert(
         timestamp=datetime.now(timezone.utc),
         source_ip="192.168.1.100",
@@ -669,12 +508,10 @@ if __name__ == "__main__":
     )
     alert_id = db.store_alert(alert, dns_log_id)
     print(f"Stored alert with ID: {alert_id}")
-    
-    # Example 3: Update alert status
+
     db.update_alert_status(alert_id, "acknowledged", "Investigating suspicious domain")
     print(f"Updated alert status to acknowledged")
-    
-    # Example 4: Store a threat cache entry
+
     threat = ThreatCacheEntry(
         domain="malicious.xyz",
         source="OpenPhish",
@@ -683,8 +520,7 @@ if __name__ == "__main__":
     )
     db.store_threat_cache_entry(threat)
     print(f"Cached malicious domain")
-    
-    # Example 5: Get dashboard summary
+
     summary = db.get_dashboard_summary()
     print(f"Dashboard Summary: {summary}")
     

@@ -1,10 +1,4 @@
-"""
-DNS Threat Monitor Logging Utilities
-===================================
-
-Centralized logging configuration and utilities for consistent
-logging across all system components.
-"""
+# Shared logging setup so every module logs the same way.
 
 import logging
 import logging.handlers
@@ -112,7 +106,6 @@ class Logger:
         logger.info("===========================")
 
 
-# Convenience functions for easy logging
 def get_logger(name: str = None) -> logging.Logger:
     """Get a configured logger instance."""
     return Logger.get_logger(name)
@@ -125,7 +118,6 @@ def log_performance(func_name: str, start_time: float, end_time: float):
     logger.debug(f"Performance: {func_name} took {duration:.4f} seconds")
 
 
-# Context manager for timing operations
 class Timer:
     """Context manager for timing code blocks."""
 
@@ -145,5 +137,4 @@ class Timer:
         self.logger.debug(f"Completed: {self.name} in {duration:.4f} seconds")
 
 
-# Initialize logging on import
 Logger._configure_logging()

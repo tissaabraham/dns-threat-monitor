@@ -1,9 +1,4 @@
-"""
-DNS Threat Monitor - Database Tests
-==================================
-
-Unit tests for the database components.
-"""
+# Tests for database CRUD, alert lifecycle, threat cache, search, and dashboard summary.
 
 import pytest
 import os

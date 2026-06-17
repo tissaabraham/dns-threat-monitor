@@ -193,7 +193,7 @@
                         <div class="modal-body">
                             <div class="table-responsive">
                                 <table class="table table-sm align-middle">
-                                    <thead><tr><th>Time</th><th>Domain</th><th>Source IP</th><th>Status</th><th>Response Time</th></tr></thead>
+                                    <thead><tr><th>Time</th><th>Domain</th><th>Source IP</th><th>Status</th><th>Query Type</th></tr></thead>
                                     <tbody id="modal-requests-body"><tr><td colspan="5" class="text-center">Loading...</td></tr></tbody>
                                 </table>
                             </div>
@@ -254,7 +254,7 @@
                                 <th>Domain</th>
                                 <th>IP Address</th>
                                 <th>Status</th>
-                                <th>Response Time</th>
+                                <th>Query Type</th>
                             </tr>
                         </thead>
                         <tbody id="recent-table-body">
@@ -308,7 +308,7 @@ function loadRecent() {
                 <td>${l.domain||'-'}</td>
                 <td>${l.source_ip||'-'}</td>
                 <td>${l.status||'-'}</td>
-                <td>${l.response_time!=null ? l.response_time+' ms' : '-'}</td>
+                <td>${l.query_type||'-'}</td>
               </tr>`).join('')
             : '<tr><td colspan="5" class="text-center text-muted">No recent data</td></tr>';
         document.getElementById('recent-table-body').innerHTML = html;
@@ -320,7 +320,7 @@ function loadRecent() {
 document.getElementById('requestsModal').addEventListener('show.bs.modal', function() {
     fetch('/api/dns-logs').then(r=>r.json()).then(rows=>{
         const html = rows.length
-            ? rows.map(l=>`<tr><td>${new Date(l.timestamp).toLocaleString()}</td><td>${l.domain||'-'}</td><td>${l.source_ip||'-'}</td><td>${l.status||'-'}</td><td>${l.response_time!=null?l.response_time+' ms':'-'}</td></tr>`).join('')
+            ? rows.map(l=>`<tr><td>${new Date(l.timestamp).toLocaleString()}</td><td>${l.domain||'-'}</td><td>${l.source_ip||'-'}</td><td>${l.status||'-'}</td><td>${l.query_type||'-'}</td></tr>`).join('')
             : '<tr><td colspan="5" class="text-center text-muted">No data</td></tr>';
         document.getElementById('modal-requests-body').innerHTML = html;
     }).catch(()=>{ document.getElementById('modal-requests-body').innerHTML='<tr><td colspan="5" class="text-center text-danger">Failed to load</td></tr>'; });

@@ -15,6 +15,8 @@ app.secret_key = 'dns-monitor-secret-key-change-in-production'
 # Connect to database
 db = DatabaseManager()
 
+# --- Page routes (just serve the HTML templates) ---
+
 @app.route('/')
 def dashboard():
     """Show main dashboard page."""
@@ -41,9 +43,11 @@ def logs():
     """Show logs page."""
     return render_template('logs.html')
 
+# --- API routes (the frontend JS calls these to get data) ---
+
 @app.route('/api/summary')
 def api_summary():
-    """Get stats for dashboard."""
+    """Numbers for the three summary cards at the top of the dashboard."""
     try:
         summary = db.get_dashboard_summary()
         severity_dist = summary.get('severity_distribution', {})
@@ -59,7 +63,7 @@ def api_summary():
 
 @app.route('/api/dns-logs')
 def api_dns_logs():
-    """Get recent DNS queries."""
+    """All DNS logs from last 24hrs - used in the requests modal."""
     try:
         logs = db.get_recent_dns_logs(hours=24, limit=50)
         return jsonify(logs)
@@ -77,7 +81,7 @@ def api_recent_logs():
 
 @app.route('/api/logs')
 def api_logs():
-    """Get logs, filter by date if needed."""
+    """For the logs page - can filter by date."""
     try:
         date_str = request.args.get('date')
         logs = db.get_recent_dns_logs(hours=24 * 365, limit=500)
@@ -98,7 +102,7 @@ def api_live_logs():
 
 @app.route('/api/alerts')
 def api_alerts():
-    """Get all active alerts."""
+    """Active threats page uses this - only shows unresolved ones."""
     try:
         alerts = db.get_active_alerts(limit=50)
         return jsonify(alerts)
@@ -107,7 +111,7 @@ def api_alerts():
 
 @app.route('/api/severity-distribution')
 def api_severity_distribution():
-    """Count alerts by severity."""
+    """How many High/Medium/Low alerts we have. Stephen wanted this for the threats modal."""
     try:
         alerts = db.search_alerts(hours=24)
         severity_dist = {'High': 0, 'Medium': 0, 'Low': 0}
@@ -119,6 +123,34 @@ def api_severity_distribution():
         return jsonify(severity_dist)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/alerts/<int:alert_id>/status', methods=['POST'])
+def api_update_alert_status(alert_id):
+    """Update the status of an alert and record the change in history."""
+    try:
+        data = request.get_json(force=True) or {}
+        new_status = data.get('status', '').strip()
+        notes = data.get('notes', '').strip() or None
+        valid_statuses = {'new', 'acknowledged', 'resolved', 'archived'}
+        if new_status not in valid_statuses:
+            return jsonify({'error': f'Invalid status. Must be one of: {sorted(valid_statuses)}'}), 400
+        success = db.update_alert_status(alert_id, new_status, notes)
+        if not success:
+            return jsonify({'error': 'Alert not found'}), 404
+        return jsonify({'ok': True, 'alert_id': alert_id, 'new_status': new_status})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/alerts/<int:alert_id>/history')
+def api_alert_history(alert_id):
+    """Get the full status-change history for a single alert."""
+    try:
+        history = db.get_alert_history(alert_id)
+        return jsonify(history)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.errorhandler(404)
 def not_found(e):

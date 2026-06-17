@@ -8,7 +8,7 @@ This repository is the storage and working location for **Group E's Capstone Pro
 **Team Members:**
 - Stephen Small
 - Tissa Abraham
-- Robert O'Brien
+- Robert O'Brien (left the project before the interim report presentation and did not continue)
 
 ## Project Overview
 
@@ -40,7 +40,6 @@ The project will achieve these goals by:
 - Storing generated alerts in the SQLite database
 - Recording detected threats and updating their status (new, acknowledged, resolved, archived)
 - Providing a web-based dashboard to view, search, and filter logs and alerts
-- Sending automated email notifications for serious threats
 - Running the system inside Docker for easy and consistent deployment
 - Testing the system using virtual machines to simulate multiple devices
 - Evaluating system performance, detection accuracy, and system limitations
@@ -54,7 +53,6 @@ The project will achieve these goals by:
 - All known malicious test domains used during evaluation are detected
 - Suspicious behaviour patterns (such as repeated or abnormal domain queries) are correctly identified
 - Alerts are automatically generated when detection rules are triggered
-- High-severity threats generate automated email notifications
 - The web dashboard displays updated logs and alerts without significant delay and allows users to search and filter records
 
 ### Performance Criteria
@@ -133,7 +131,6 @@ If one or more of these conditions are detected, the system assigns a higher thr
 - **DNS Forwarding Service** - dnsmasq or unbound
 - **SQLite Database** - For storing DNS logs and alerts
 - **Flask Web Framework** - Web-based dashboard for visualization
-- **Email Notification Service** - For alert notifications
 - **Docker** - Containerized deployment and testing
 - **Virtual Machines** - Testing environment for simulating multiple devices
 
@@ -146,7 +143,7 @@ The system consists of five main layers:
 2. **Parsing and Processing Layer** - Extracts relevant DNS metadata
 3. **Detection Engine** - Applies blacklist and rule-based detection
 4. **Data Storage Layer** - Stores logs and alerts in SQLite database
-5. **Presentation and Alerting Layer** - Web dashboard and email notifications
+5. **Presentation and Alerting Layer** - Web dashboard
 
 ## Data Management
 

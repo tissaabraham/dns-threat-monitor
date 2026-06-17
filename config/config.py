@@ -1,9 +1,8 @@
 """
 DNS Threat Monitor Configuration
-================================
 
 Central configuration file for the DNS Threat Monitor system.
-All configurable parameters should be defined here to avoid hardcoding.
+All adjustable parameters are defined here to avoid hardcoding values elsewhere.
 
 > Changes made to work with the .env file rather than having them be hardcoded.
 > Booleans need to be handled and Ints need to be cast, otherwise will cause problems as evnironment variables are always strings.
@@ -95,29 +94,7 @@ class Config:
     DASHBOARD_UPDATE_INTERVAL = int(os.getenv("DASHBOARD_UPDATE_INTERVAL", "30"))
 
     # ============================================================================
-    # EMAIL ALERTING CONFIGURATION
-    # ============================================================================
-
-    # Turn on email alerts
-    ENABLE_EMAIL_ALERTS = os.getenv("ENABLE_EMAIL_ALERTS", "false").lower() == "true"
-
-    # Email server settings
-    SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-    SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-    SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
-    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")  # sensitive - important to be in .env
-    SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
-
-    # Who sends and receives alerts
-    ALERT_EMAIL_FROM = os.getenv("ALERT_EMAIL_FROM", "dns-monitor@example.com")
-    ALERT_EMAIL_TO = os.getenv("ALERT_EMAIL_TO", "admin@example.com").split(",")
-    ALERT_EMAIL_SUBJECT = os.getenv("ALERT_EMAIL_SUBJECT", "DNS Threat Monitor Alert")
-
-    # Only send high severity alerts
-    EMAIL_ALERT_SEVERITY = os.getenv("EMAIL_ALERT_SEVERITY", "HIGH")
-
-    # ============================================================================
-    # PROCESSING & PERFORMANCE CONFIGURATION
+    # PERFORMANCE CONFIGURATION
     # ============================================================================
 
     # Number of processing threads

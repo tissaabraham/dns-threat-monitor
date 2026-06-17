@@ -1,9 +1,4 @@
-"""
-DNS Threat Monitor - Parser Tests
-=================================
-
-Unit tests for the input parsing components.
-"""
+# Tests for dnsmasq and tshark parsers, domain normalisation, and cross-format consistency.
 
 import pytest
 from datetime import datetime, timezone

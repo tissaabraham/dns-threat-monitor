@@ -112,7 +112,7 @@
                                 <th>Domain</th>
                                 <th>Source IP</th>
                                 <th>Status</th>
-                                <th>Response Time</th>
+                                <th>Query Type</th>
                             </tr>
                         </thead>
                         <tbody id="logs-table-body">
@@ -143,7 +143,7 @@
                     <td>${l.domain||'-'}</td>
                     <td>${l.source_ip||'-'}</td>
                     <td class="status-${(l.status||'').toLowerCase()}">${l.status||'-'}</td>
-                    <td>${l.response_time!=null ? l.response_time+' ms' : '-'}</td>
+                    <td>${l.query_type||'-'}</td>
                   </tr>`).join('')
                 : '<tr><td colspan="5" class="text-center text-muted">No logs found for this date</td></tr>';
             document.getElementById('logs-table-body').innerHTML = html;
@@ -154,11 +154,11 @@
 
     function downloadCSV() {
         if (!currentRows.length) { alert('No data to download.'); return; }
-        const headers = ['Time','Domain','Source IP','Status','Response Time'];
+        const headers = ['Time','Domain','Source IP','Status','Query Type'];
         const rows = currentRows.map(l=>[
             l.timestamp ? new Date(l.timestamp).toLocaleString() : '',
             l.domain||'', l.source_ip||'', l.status||'',
-            l.response_time!=null ? l.response_time+' ms' : ''
+            l.query_type||''
         ]);
         const csv = [headers, ...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
         const blob = new Blob([csv], {type:'text/csv'});
