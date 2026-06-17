@@ -11,9 +11,9 @@ def tail_log(filepath: str = Config.DNSMASQ_LOG_PATH):
     Will be running in conjunction with tshark.
     """
     try:
-        f = open(filepath, "r")
-    except FileNotFoundError:
-        logger.warning(f"dnsmasq log not found: {filepath} — dnsmasq capture disabled")
+        f = open(filepath, "r", encoding="utf-8", errors="replace")
+    except (FileNotFoundError, PermissionError) as e:
+        logger.warning(f"dnsmasq log could not be opened: {e} — dnsmasq capture disabled")
         return
 
     with f:
@@ -21,6 +21,6 @@ def tail_log(filepath: str = Config.DNSMASQ_LOG_PATH):
         while True:
             line = f.readline()
             if line:
-                yield ("dnsmasq", line.strip())  # tag the source
+                yield ("dnsmasq", line.strip())  # tag the source as dnsmasq
             else:
                 time.sleep(0.1)

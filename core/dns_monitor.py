@@ -11,7 +11,7 @@ This is the main orchestrator that connects all system components:
 The system processes DNS traffic in real-time, detects threats,
 and stores results for dashboard access.
 """
-
+import queue
 import sys
 import time
 import signal
@@ -34,7 +34,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('logs/dns_monitor.log'),
+        logging.FileHandler(Config.get_log_path()),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -64,6 +64,13 @@ class DNSThreatMonitor:
         # Processing queue and control
         self.event_queue = Queue(maxsize=self.config.QUEUE_SIZE)
         self.stop_event = Event()
+
+        # Checking that the directories exist (moved from Config.py)
+        Config.ensure_directories_exist()
+        issues = Config.validate_configuration()
+        if issues:
+            for issue in issues:
+                logger.warning(f"Config issue: {issue}")
 
         # Statistics (counters are owned by the pipeline; only start_time lives here)
         self.stats = {
@@ -134,9 +141,14 @@ class DNSThreatMonitor:
         # Load remote feeds first, THEN start refresh cycle
         # Otherwise can cause issues with not having loaded info on startup.
         if self.config.ENABLE_REMOTE_BLACKLIST:
+            # Now it will ACTUALLY refresh every x hours as we've defined in the config
+            intervals = {
+                self.config.REMOTE_BLACKLIST_URLS[0]: self.config.BLACKLIST_REFRESH_URLHAUS,
+                self.config.REMOTE_BLACKLIST_URLS[1]: self.config.BLACKLIST_REFRESH_OPENPHISH,
+            }
             for url in self.config.REMOTE_BLACKLIST_URLS:
                 self.blacklist.load_from_url_sync(url)  # wait for completion
-                self.blacklist.start_auto_refresh(url)  # THEN start background refresh
+                self.blacklist.start_auto_refresh(url, interval_hours=intervals[url])  # THEN start background refresh
                 logger.info(f"Started auto-refresh from {url}")
 
     def _start_processing_threads(self):
@@ -176,7 +188,7 @@ class DNSThreatMonitor:
                 # Put event in processing queue
                 try:
                     self.event_queue.put((source, line), timeout=1)
-                except:
+                except queue.Full:
                     # Queue full, skip this event
                     logger.warning("Processing queue full, skipping event")
 
@@ -190,16 +202,19 @@ class DNSThreatMonitor:
             try:
                 # Get event from queue
                 source, line = self.event_queue.get(timeout=1)
+            except queue.Empty:
+                continue
 
+            try:
                 # Process the event
                 self._process_dns_event(source, line)
+            except Exception as e:
+                logger.error(f"Error processing event: {e}")
 
+            finally:
                 # Mark task as done
+                # Timeouts now separated from processing errors, bugs should now show up in the logs
                 self.event_queue.task_done()
-
-            except:
-                # Timeout or queue empty, continue
-                continue
 
     def _process_dns_event(self, source: str, line: str):
         """Process a single DNS event through the pipeline."""

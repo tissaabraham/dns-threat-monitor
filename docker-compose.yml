@@ -12,15 +12,17 @@ services:
     # Keeps the container running even if it crashes
     restart: unless-stopped
 
-    ports:
-      - "127.0.0.1:5000:5000" # Port the dashboard is running on.
+# Yeah so unfortunately since host mode stops port mapping, just going to comment out.
+    # The dashboard will still default to host:5000
+  #  ports:
+  #    - "127.0.0.1:5000:5000" # Port the dashboard is running on.
     # When using WSL, having issues with port being exposed correctly....
     # Html loads though, so it should be okay.
     # Using Powershell to force the port to be publically available is good.
 
     volumes:
       # Mount the database file outside the container so data will persist even if the container is rebuilt
-      - ./data:/app/data
+      - .dns_threat_monitor.db:/app/dns_threat_monitor.db
 
       # Mount threats.txt so we can edit it without rebuilding everything
       - ./threats.txt:/app/threats.txt
@@ -28,10 +30,11 @@ services:
     # Show logs in real time
     tty: true
 
-    # Checks the container every 30 seconds to make sure it's still working, not just running.
-    # Had issues where it was running but everything had stopped working
+    # New health check specifically makes a HTTPS request to the dashboard to see if it responds
+        # Also slightly better in that it's not just checking if a port is open.
+
     healthcheck:
-      test: ["CMD", "ss", "-tulpn"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000')" ]
       interval: 30s
       timeout: 10s
       retries: 3

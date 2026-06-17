@@ -21,7 +21,7 @@ class RuleEngine:
         # deque is like a list but more efficient for adding/removing from both ends, apparently
         self.query_times: dict = defaultdict(deque)  # IP → [timestamps]
         self.nxdomain_times: dict = defaultdict(deque)  # IP → [timestamps]
-        self.subdomains: dict = defaultdict(set)  # root domain → {subdomains}
+        self.subdomain_times: dict = defaultdict(list)  # root → [(subdomain, timestamp)]
 
     def check(self, event: DnsEvent) -> list:
         #Returns a list of rule names that were triggered.
@@ -84,8 +84,19 @@ class RuleEngine:
 
         root = ".".join(parts[-2:])
         subdomain = parts[0]
-        self.subdomains[root].add(subdomain)
-        return len(self.subdomains[root]) > self.SUBDOMAIN_LIMIT
+        now = event.timestamp
+        window = timedelta(minutes=5)
+        self.subdomain_times[root].append((subdomain, now))
+
+        # Now old entries expire after 5 min window, as planned
+        self.subdomain_times[root] = [
+            (s, t) for s, t in self.subdomain_times[root]
+            if now - t <= window
+        ]
+
+        # Count unique subdomains in the 5 min window
+        unique = {s for s, t in self.subdomain_times[root]}
+        return len(unique) > self.SUBDOMAIN_LIMIT
 
     def _rate_exceeded(self, timestamps: deque, window_seconds: int,
                        limit: int, now: datetime) -> bool:
@@ -127,7 +138,7 @@ class RuleEngine:
         """
         label = domain.split(".")[0]  # just the leftmost label
         # Consider long labels likely DGA-ish, or very high-entropy short labels
-        return len(label) > 12 or RuleEngine._string_entropy(label) > 3.0
+        return len(label) > Config.DGA_MIN_LENGTH or RuleEngine._string_entropy(label) > Config.DGA_ENTROPY_THRESHOLD
 
     def _check_dga_pattern(self, event: DnsEvent) -> bool:
         return self._looks_like_dga(event.domain)

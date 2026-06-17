@@ -57,7 +57,9 @@ class Blacklist:
             print(f"Refreshing blacklist from {url}...")
             self.load_from_url(url)
             # Schedule the next refresh, otherwise it wouldn't restart
-            threading.Timer(interval_hours * 3600, refresh).start()
+            t = threading.Timer(interval_hours * 3600, refresh)
+            t.daemon = True # Now it won't block the code exiting.
+            t.start()
 
         # Do the first refresh immediately instead of waiting 24hrs
         threading.Thread(target=refresh, daemon=True).start()

@@ -11,6 +11,8 @@ All configurable parameters should be defined here to avoid hardcoding.
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()  # reads .env into os.environ before any getenv() calls
 
 
 class Config:
@@ -209,6 +211,8 @@ class Config:
     @classmethod
     def print_configuration(cls):
         """Print current configuration for debugging."""
+        # I think Tissa wants these replaced with logger, and only when called.
+        # Need to adjust this.
         print("=== DNS Threat Monitor Configuration ===")
         print(f"Project Root: {cls.PROJECT_ROOT}")
         print(f"Database: {cls.DATABASE_FILE}")
@@ -219,16 +223,3 @@ class Config:
         print(f"Remote Blacklist: {cls.ENABLE_REMOTE_BLACKLIST}")
         print(f"Test Mode: {cls.TEST_MODE}")
         print("========================================")
-
-
-# Initialize configuration on import
-Config.ensure_directories_exist()
-
-# Validate configuration
-issues = Config.validate_configuration()
-if issues:
-    print("Configuration Issues Found:")
-    for issue in issues:
-        print(f"  - {issue}")
-else:
-    print("✓ Configuration validated successfully")

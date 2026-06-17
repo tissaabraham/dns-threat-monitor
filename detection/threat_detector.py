@@ -19,8 +19,8 @@ class Detector:
         Analyse DNS event.
         Returns an Alert if something suspicious was found.
         """
-        if event.is_response:
-            return None # Not checking responses, only queries
+        if event.is_response and event.response_code != 3:
+            return None # Now lets NXDOMAIN responses through but still ignores normal ones
 
         blacklist_hit = self.blacklist.is_malicious(event.domain)
         rules_triggered = self.rule_engine.check(event)
