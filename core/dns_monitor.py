@@ -1,6 +1,16 @@
-# Ties together capture, parsing, detection, and storage.
-# Runs capture + processing threads and keeps the main loop alive.
+"""
+DNS Threat Monitor - Main Orchestrator
 
+This is the main orchestrator that connects all system components:
+- Capture Layer (dnsmasq + tshark)
+- Parser Layer (input parsing + blacklist)
+- Detection Layer (rules + threat detector)
+- Database Layer (storage + queries)
+
+The system processes DNS traffic in real-time, detects threats,
+and stores results for dashboard access.
+"""
+import queue
 import sys
 import time
 import signal
@@ -21,7 +31,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('logs/dns_monitor.log'),
+        logging.FileHandler(Config.get_log_path()),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -51,6 +61,13 @@ class DNSThreatMonitor:
         # Queue for events and stop signal
         self.event_queue = Queue(maxsize=self.config.QUEUE_SIZE)
         self.stop_event = Event()
+
+        # Checking that the directories exist (moved from Config.py)
+        Config.ensure_directories_exist()
+        issues = Config.validate_configuration()
+        if issues:
+            for issue in issues:
+                logger.warning(f"Config issue: {issue}")
 
         # Track when we started
         self.stats = {
@@ -118,10 +135,17 @@ class DNSThreatMonitor:
         except FileNotFoundError:
             logger.warning(f"Local threats file not found: {self.config.THREATS_FILE}")
 
-        # Get updates from internet
+        # Load remote feeds first, THEN start refresh cycle
+        # Otherwise can cause issues with not having loaded info on startup.
         if self.config.ENABLE_REMOTE_BLACKLIST:
+            # Now it will ACTUALLY refresh every x hours as we've defined in the config
+            intervals = {
+                self.config.REMOTE_BLACKLIST_URLS[0]: self.config.BLACKLIST_REFRESH_URLHAUS,
+                self.config.REMOTE_BLACKLIST_URLS[1]: self.config.BLACKLIST_REFRESH_OPENPHISH,
+            }
             for url in self.config.REMOTE_BLACKLIST_URLS:
-                self.blacklist.start_auto_refresh(url)
+                self.blacklist.load_from_url_sync(url)  # wait for completion
+                self.blacklist.start_auto_refresh(url, interval_hours=intervals[url])  # THEN start background refresh
                 logger.info(f"Started auto-refresh from {url}")
 
     def _start_processing_threads(self):
@@ -161,8 +185,8 @@ class DNSThreatMonitor:
                 # Add to queue for processing
                 try:
                     self.event_queue.put((source, line), timeout=1)
-                except:
-                    # Queue is full, skip this one
+                except queue.Full:
+                    # Queue full, skip this event
                     logger.warning("Processing queue full, skipping event")
 
         except Exception as e:
@@ -175,16 +199,19 @@ class DNSThreatMonitor:
             try:
                 # Get event from queue
                 source, line = self.event_queue.get(timeout=1)
+            except queue.Empty:
+                continue
 
+            try:
                 # Send to pipeline for analysis
                 self._process_dns_event(source, line)
+            except Exception as e:
+                logger.error(f"Error processing event: {e}")
 
-                # Tell queue we're done
+            finally:
+                # Mark task as done
+                # Timeouts now separated from processing errors, bugs should now show up in the logs instead of being swallowed.
                 self.event_queue.task_done()
-
-            except:
-                # Nothing in queue, wait
-                continue
 
     def _process_dns_event(self, source: str, line: str):
         """Process a single DNS event through the pipeline."""

@@ -1,7 +1,17 @@
-# Central config file - all tuneable settings live here so nothing is hardcoded elsewhere.
+"""
+DNS Threat Monitor Configuration
+
+Central configuration file for the DNS Threat Monitor system.
+All adjustable parameters are defined here to avoid hardcoding values elsewhere.
+
+> Changes made to work with the .env file rather than having them be hardcoded.
+> Booleans need to be handled and Ints need to be cast, otherwise will cause problems as evnironment variables are always strings.
+"""
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()  # reads .env into os.environ before any getenv() calls
 
 
 class Config:
@@ -18,113 +28,108 @@ class Config:
     PROJECT_ROOT = Path(__file__).parent.parent
 
     # Where the database file is stored
-    DATABASE_FILE = PROJECT_ROOT / 'dns_threat_monitor.db'
+    DATABASE_FILE = PROJECT_ROOT / os.getenv("DB_FILENAME", "dns_threat_monitor.db")
 
     # File with known malicious domains
-    THREATS_FILE = PROJECT_ROOT / 'threats.txt'
+    THREATS_FILE = PROJECT_ROOT / os.getenv("THREATS_FILENAME", "threats.txt")
 
     # Where logs are written
-    LOG_FILE = PROJECT_ROOT / 'logs' / 'dns_monitor.log'
-    LOG_LEVEL = 'INFO'  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    LOG_FILE = PROJECT_ROOT / 'logs' / os.getenv("LOG_FILENAME", "dns_monitor.log")
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO") # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     # ============================================================================
     # CAPTURE CONFIGURATION
     # ============================================================================
 
     # Network card to capture traffic from
-    CAPTURE_INTERFACE = "eth0"  # Change this to match the network interface
+    CAPTURE_INTERFACE = os.getenv("NETWORK_INTERFACE", "eth0")  # Change this to match the network interface
 
-    # Where dnsmasq writes its logs
-    DNSMASQ_LOG_PATH = "/var/log/dnsmasq.log"
-
-    # ============================================================================
-    # PROCESSING CONFIGURATION
-    # ============================================================================
-
-    # How many threads to process events
-    PROCESSING_THREADS = 2
-
-    # Max events to hold in memory
-    QUEUE_SIZE = 1000
+    # DNS log file path (for dnsmasq)
+    DNSMASQ_LOG_PATH = os.getenv("DNSMASQ_LOG_PATH", "/var/log/dnsmasq.log")
 
     # ============================================================================
     # DETECTION CONFIGURATION
     # ============================================================================
 
-    # Limits for detection rules
-    HIGH_QUERY_RATE_LIMIT = 50  # queries per minute
-    NXDOMAIN_LIMIT = 10         # NXDOMAIN replies per minute
-    SUBDOMAIN_LIMIT = 20        # unique subdomains per 5 minutes
-
-    # Domain endings that look suspicious
-    SUSPICIOUS_TLDS = {".xyz", ".tk", ".top", ".pw", ".cc", ".su", ".ml", ".site"}
+    # Rule thresholds
+    HIGH_QUERY_RATE_LIMIT = int(os.getenv("QUERY_RATE_LIMIT", "50"))  # queries per minute
+    NXDOMAIN_LIMIT = int(os.getenv("NXDOMAIN_LIMIT", "10"))        # NXDOMAIN replies per minute
+    SUBDOMAIN_LIMIT = int(os.getenv("SUBDOMAIN_LIMIT", "20"))        # unique subdomains per 5 minutes
 
     # Settings for detecting generated domains
-    DGA_ENTROPY_THRESHOLD = 3.5
-    DGA_MIN_LENGTH = 12
+    DGA_ENTROPY_THRESHOLD = float(os.getenv("DGA_ENTROPY_THRESHOLD", "3.5"))
+    DGA_MIN_LENGTH = int(os.getenv("DGA_MIN_LENGTH", "12"))
+
+    # Suspicious TLDs
+    SUSPICIOUS_TLDS = {".xyz", ".tk", ".top", ".pw", ".cc", ".su", ".ml", ".site", ".shop"}
+
 
     # ============================================================================
     # BLACKLIST CONFIGURATION
     # ============================================================================
 
     # Whether to update blacklist from internet
-    ENABLE_REMOTE_BLACKLIST = True
+    ENABLE_REMOTE_BLACKLIST = os.getenv("ENABLE_REMOTE_BLACKLIST", "true").lower() == "true"    #Has to be converted to a boolean
 
-    # Websites to get threat data from
+    # Remote blacklist URLs
     REMOTE_BLACKLIST_URLS = [
         "https://urlhaus.abuse.ch/downloads/text/",
         "https://raw.githubusercontent.com/openphish/public_feed/refs/heads/main/feed.txt"
     ]
 
     # How often to refresh each source
-    BLACKLIST_REFRESH_INTERVALS = {
-        "urlhaus.abuse.ch": 24,    # Daily
-        "openphish": 12            # Twice daily
-    }
+    BLACKLIST_REFRESH_URLHAUS = int(os.getenv("URLHAUS_REFRESH_HOURS", "24"))
+    BLACKLIST_REFRESH_OPENPHISH = int(os.getenv("OPENPHISH_REFRESH_HOURS", "12"))
 
     # ============================================================================
     # DASHBOARD CONFIGURATION
     # ============================================================================
 
     # Web server settings
-    DASHBOARD_HOST = "0.0.0.0"
-    DASHBOARD_PORT = 5000
-    DASHBOARD_DEBUG = False
+    DASHBOARD_HOST = os.getenv("DASHBOARD_HOST", "0.0.0.0")
+    DASHBOARD_PORT = int(os.getenv("DASHBOARD_PORT", "5000"))
+    DASHBOARD_DEBUG = os.getenv("DASHBOARD_DEBUG", "false").lower() == "true"
 
     # How often dashboard updates
-    DASHBOARD_UPDATE_INTERVAL = 30
+    DASHBOARD_UPDATE_INTERVAL = int(os.getenv("DASHBOARD_UPDATE_INTERVAL", "30"))
 
     # ============================================================================
     # PERFORMANCE CONFIGURATION
     # ============================================================================
 
-    # Limits on database queries
-    MAX_DNS_LOGS_LIMIT = 1000
-    MAX_ALERTS_LIMIT = 100
+    # Number of processing threads
+    PROCESSING_THREADS = int(os.getenv("PROCESSING_THREADS", "2"))
+
+    # Event queue size
+    QUEUE_SIZE = int(os.getenv("QUEUE_SIZE", "1000"))
+
+    # Database query limits
+    MAX_DNS_LOGS_LIMIT = int(os.getenv("MAX_DNS_LOGS_LIMIT", "1000"))
+    MAX_ALERTS_LIMIT = int(os.getenv("MAX_ALERTS_LIMIT", "100"))
 
     # Default time range for queries
-    DEFAULT_TIME_RANGE_HOURS = 24
+    DEFAULT_TIME_RANGE_HOURS = int(os.getenv("DEFAULT_TIME_RANGE_HOURS", "24"))
 
     # ============================================================================
     # SYSTEM LIMITS
     # ============================================================================
 
     # System resource limits
-    MAX_CPU_PERCENT = 30.0
-    MAX_MEMORY_MB = 500
+    MAX_CPU_PERCENT = float(os.getenv("MAX_CPU_PERCENT", "30.0"))
+    MAX_MEMORY_MB = int(os.getenv("MAX_MEMORY_MB", "500"))
 
     # Max time to detect threats
-    MAX_DETECTION_TIME = 3.0
+    MAX_DETECTION_TIME = float(os.getenv("MAX_DETECTION_TIME", "3.0"))
 
     # ============================================================================
     # DEVELOPMENT/TESTING CONFIGURATION
     # ============================================================================
 
     # Use fake data for testing
-    TEST_MODE = False
+    TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
 
     # File with test data
-    TEST_DATA_FILE = PROJECT_ROOT / 'tests' / 'test_dns_data.txt'
+    TEST_DATA_FILE = PROJECT_ROOT / 'tests' / os.getenv("TEST_DATA_FILE", "test_dns_data.txt")
 
     # ============================================================================
     # UTILITY METHODS

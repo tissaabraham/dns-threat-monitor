@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from database.dataModels import DnsEvent
 import math
 from collections import Counter
+from config.config import Config
 
 class RuleEngine:
     """
@@ -10,17 +11,17 @@ class RuleEngine:
         -> Keeps track of recent activity to spot patterns over time.
     """
 
-    SUSPICIOUS_TLDS = {".xyz", ".tk", ".top", ".pw", ".cc", ".su", ".ml", ".site"}   #Can add more if we think of them
-    QUERY_RATE_LIMIT = 50  # queries per minute before flagging
-    NXDOMAIN_LIMIT = 10  # NXDOMAIN replies per minute before flagging
-    SUBDOMAIN_LIMIT = 20  # unique subdomains per 5 minutes before flagging
+    SUSPICIOUS_TLDS = Config.SUSPICIOUS_TLDS
+    QUERY_RATE_LIMIT = Config.HIGH_QUERY_RATE_LIMIT
+    NXDOMAIN_LIMIT = Config.NXDOMAIN_LIMIT
+    SUBDOMAIN_LIMIT = Config.SUBDOMAIN_LIMIT
 
     def __init__(self):
         # These track recent events per IP address
         # deque is like a list but more efficient for adding/removing from both ends, apparently
         self.query_times: dict = defaultdict(deque)  # IP → [timestamps]
         self.nxdomain_times: dict = defaultdict(deque)  # IP → [timestamps]
-        self.subdomains: dict = defaultdict(set)  # root domain → {subdomains}
+        self.subdomain_times: dict = defaultdict(list)  # root → [(subdomain, timestamp)]
 
     def check(self, event: DnsEvent) -> list:
         #Returns a list of rule names that were triggered.
@@ -83,8 +84,19 @@ class RuleEngine:
 
         root = ".".join(parts[-2:])
         subdomain = parts[0]
-        self.subdomains[root].add(subdomain)
-        return len(self.subdomains[root]) > self.SUBDOMAIN_LIMIT
+        now = event.timestamp
+        window = timedelta(minutes=5)
+        self.subdomain_times[root].append((subdomain, now))
+
+        # Now old entries expire after 5 min window, as planned
+        self.subdomain_times[root] = [
+            (s, t) for s, t in self.subdomain_times[root]
+            if now - t <= window
+        ]
+
+        # Count unique subdomains in the 5 min window
+        unique = {s for s, t in self.subdomain_times[root]}
+        return len(unique) > self.SUBDOMAIN_LIMIT
 
     def _rate_exceeded(self, timestamps: deque, window_seconds: int,
                        limit: int, now: datetime) -> bool:
@@ -98,31 +110,35 @@ class RuleEngine:
             timestamps.popleft()  # remove old events outside the window
         return len(timestamps) > limit
 
+
     @staticmethod #Since not touching instance data, needs to be static
     def _string_entropy(s: str) -> float:  #Uses Shannon Entropy to detect randomness
+        """
+            Higher value, more random.
+            Lower value, less random/more predictable.
+            It's not the most effective, but it still helps.
+                abcabcabc   - Moderately random
+                bbbbbbbbb   - Very random
+                ababababa   - Slightly more random
+                    > Counts repeats of individual letters basically, so it's not foolproof.
+                > Still, should help with randomly generated domains.
+        """
         counts = Counter(s)
         length = len(s)
         return -sum((c / length) * math.log2(c / length) for c in counts.values())
-    """
-        Higher value, less random.
-        It's not the most effective, but it still helps.
-        abcabcabc   - Moderately random
-        bbbbbbbbb   - Very random
-        ababababa   - Slightly more random
-        Counts repeats of individual letters basically, so it's not foolproof.
-        Still, should help with randomly generated domains.
-    """
 
-    """
-        Check to see if it could be a Domain Generation Algorithm, 
-        making different domains for DDOS and DNS tunnelling.
-        Sends the domains to the entropy checker, which will then have it's result checked.
-    """
+
+
     @staticmethod
     def _looks_like_dga(domain: str) -> bool:
+        """
+                Check to see if it could be a Domain Generation Algorithm,
+                making different domains for DDOS and DNS tunnelling.
+                Sends the domains to the entropy checker, which will then have it's result checked.
+        """
         label = domain.split(".")[0]  # just the leftmost label
         # Consider long labels likely DGA-ish, or very high-entropy short labels
-        return len(label) > 12 or RuleEngine._string_entropy(label) > 3.0
+        return len(label) > Config.DGA_MIN_LENGTH or RuleEngine._string_entropy(label) > Config.DGA_ENTROPY_THRESHOLD
 
     def _check_dga_pattern(self, event: DnsEvent) -> bool:
         return self._looks_like_dga(event.domain)

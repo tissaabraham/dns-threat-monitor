@@ -1,6 +1,7 @@
 from flask import Flask, render_template, jsonify, request, session
 import sys
 import os
+from config.config import Config
 
 # Add parent folder to imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -163,11 +164,11 @@ def server_error(e):
 
 if __name__ == '__main__':
     try:
-        print("Starting DNS Threat Monitor Dashboard...")
-        print("Dashboard available at: http://localhost:5000")
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        print(" Starting DNS Threat Monitor Dashboard...")
+        print(" Dashboard available at: http://localhost:5000")
+        app.run(debug=Config.DASHBOARD_DEBUG, host=Config.DASHBOARD_HOST, port=Config.DASHBOARD_PORT)
     except Exception as e:
-        print(f"Error starting dashboard: {e}")
+        print(f" Error starting dashboard: {e}")
     finally:
         # Close database when done
         db.close()
