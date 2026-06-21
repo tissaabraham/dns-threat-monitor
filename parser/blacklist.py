@@ -3,6 +3,27 @@ import requests     #For online requests
 from urllib.parse import urlparse
 from .input_parser import get_root_domain
 
+# Major platforms where phishing pages get hosted — the domain itself is NOT malicious.
+# Without this, URL-based feeds (OpenPhish) add e.g. 'github.com' to the blacklist
+# just because a phishing page was hosted on GitHub, causing massive false positives.
+WHITELISTED_DOMAINS = {
+    "github.com", "githubusercontent.com", "raw.githubusercontent.com",
+    "google.com", "googleapis.com", "gstatic.com",
+    "microsoft.com", "live.com", "outlook.com", "office.com",
+    "amazon.com", "amazonaws.com",
+    "cloudflare.com", "cdn.jsdelivr.net", "jsdelivr.net",
+    "facebook.com", "instagram.com",
+    "youtube.com", "youtu.be",
+    "twitter.com", "t.co",
+    "linkedin.com",
+    "apple.com", "icloud.com",
+    "dropbox.com",
+    "wordpress.com", "wp.com",
+    "blogspot.com", "blogger.com",
+    "bit.ly", "tinyurl.com",
+}
+
+
 class Blacklist:
 
     def __init__(self):
@@ -32,7 +53,9 @@ class Blacklist:
             for line in response.text.splitlines():
                 line = line.strip()
                 if line and not line.startswith("#"):
-                    new_domains.add(self.extract_domain(line))
+                    extracted = self.extract_domain(line)
+                    if extracted:
+                        new_domains.add(extracted)
 
             # Safely swap in the new domains, lock stops it causing an error.
             with self._lock:
@@ -85,7 +108,15 @@ class Blacklist:
             Will handle both plain domains and full URLs (Needed if using OpenPhish too)
             "https://evil.xyz/path" → "evil.xyz"
             "evil.xyz" → "evil.xyz"
+            Skips whitelisted domains to avoid false positives from URL-based feeds.
         """
         if url_or_domain.startswith("http"):
-            return urlparse(url_or_domain).netloc.lower()
-        return url_or_domain.lower()
+            domain = urlparse(url_or_domain).netloc.lower()
+        else:
+            domain = url_or_domain.lower()
+
+        # Skip whitelisted domains — they appear in feeds because phishing
+        # pages are *hosted* on them, not because the domain is malicious.
+        if domain in WHITELISTED_DOMAINS:
+            return None
+        return domain

@@ -85,7 +85,7 @@
     <div class="row">
         <!-- Sidebar -->
         <nav class="col-md-2 d-none d-md-block sidebar py-4">
-            <div class="logo ps-3"><span>Shield</span>DNS Threat Monitor</div>
+            <div class="logo ps-3"><span><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="#4fc3f7" viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg></span>DNS Threat Monitor</div>
             <ul class="nav flex-column ps-3">
                 <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link active" href="/live-monitoring">Live Monitoring</a></li>
@@ -143,15 +143,27 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Converts untrusted values to safe text so browsers treat them as plain text, not HTML tags or scripts.
+    function esc(v) {
+        return String(v == null ? '-' : v)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); // replace chars that start HTML tags or attributes
+    }
+    // Wrapper around fetch that redirects to the login page if the session has expired (401).
+    function apiFetch(url, opts) {
+        return fetch(url, opts).then(function(r) {
+            if (r.status === 401) { window.location.href = '/login'; return Promise.reject('unauthenticated'); }
+            return r;
+        });
+    }
     function loadLive() {
-        fetch('/api/live-logs').then(r=>r.json()).then(rows=>{
+        apiFetch('/api/live-logs').then(r=>r.json()).then(rows=>{
             const html = rows.length
                 ? rows.map(l=>`<tr>
                     <td>${l.timestamp ? new Date(l.timestamp).toLocaleString() : '-'}</td>
-                    <td>${l.domain||'-'}</td>
-                    <td>${l.source_ip||'-'}</td>
-                    <td class="status-${(l.status||'').toLowerCase()}">${l.status||'-'}</td>
-                    <td>${l.query_type||'-'}</td>
+                    <td>${esc(l.domain)}</td>
+                    <td>${esc(l.source_ip)}</td>
+                    <td class="status-${esc((l.status||'').toLowerCase())}">${esc(l.status)}</td>
+                    <td>${esc(l.query_type)}</td>
                   </tr>`).join('')
                 : '<tr><td colspan="5" class="text-center text-muted">No DNS requests recorded yet</td></tr>';
             document.getElementById('live-table-body').innerHTML = html;
@@ -161,18 +173,16 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        const saved = localStorage.getItem('dtm_username');
-        if (saved) {
-            document.getElementById('topbar-username').textContent = saved;
-            document.getElementById('dropdown-username').textContent = saved;
-        }
+        // Show the logged-in user's name from the session.
+        apiFetch('/api/me').then(function(r) { return r.ok ? r.json() : null; }).then(function(u) {
+            if (!u) return;
+            document.getElementById('topbar-username').textContent = u.username || 'User';
+            document.getElementById('dropdown-username').textContent = u.username || 'User';
+        });
+        // Log Out ends the session on the server.
         document.getElementById('logout-btn').addEventListener('click', function(e) {
             e.preventDefault();
-            localStorage.removeItem('dtm_username');
-            localStorage.removeItem('dtm_fullname');
-            localStorage.removeItem('dtm_email');
-            document.getElementById('topbar-username').textContent = 'Username';
-            document.getElementById('dropdown-username').textContent = 'Username';
+            window.location.href = '/logout';
         });
         loadLive();
         setInterval(loadLive, 5000);
