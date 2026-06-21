@@ -1,7 +1,7 @@
 import threading
 import queue
 import platform
-from .dnsmasq_capture import tail_log
+from .dnslog_capture import tail_log
 from .tshark_capture import stream_tshark
 
 
@@ -17,9 +17,14 @@ def combined_capture():
 
     Yield() will give a tuple (from either of the sources) as they reach the top of the queue.
         (source [tshark/dnsmasq], captured packet line)
+
+
+    => Now that we're using Technitium, I'm not sure if we even need Tshark anymore.
+        -> Will look into it, at the very least will be replacing DNSMASQ
     """
     q = queue.Queue()
 
+#todo - Swap Dnsmasq references to Technitium
     def run_dnsmasq():
         for item in tail_log():
             q.put(item)

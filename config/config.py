@@ -44,7 +44,8 @@ class Config:
     # Network card to capture traffic from
     CAPTURE_INTERFACE = os.getenv("NETWORK_INTERFACE", "eth0")  # Change this to match the network interface
 
-    # DNS log file path (for dnsmasq)
+    # DNS log file path (For technitium)
+    #todo
     DNSMASQ_LOG_PATH = os.getenv("DNSMASQ_LOG_PATH", "/var/log/dnsmasq.log")
 
     # ============================================================================
@@ -56,7 +57,7 @@ class Config:
     NXDOMAIN_LIMIT = int(os.getenv("NXDOMAIN_LIMIT", "10"))        # NXDOMAIN replies per minute
     SUBDOMAIN_LIMIT = int(os.getenv("SUBDOMAIN_LIMIT", "20"))        # unique subdomains per 5 minutes
 
-    # Settings for detecting generated domains
+    # Settings for detecting generated domains (and their default values)
     DGA_ENTROPY_THRESHOLD = float(os.getenv("DGA_ENTROPY_THRESHOLD", "3.5"))
     DGA_MIN_LENGTH = int(os.getenv("DGA_MIN_LENGTH", "12"))
 

@@ -1,3 +1,8 @@
+"""
+Redoing the code to now take the logs from TEchnitium, rather than DNSMasq.
+Does pretty much the same thing but is a lot easier to route home network traffic through.
+"""
+
 import time
 import logging
 from config.config import Config

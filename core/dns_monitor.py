@@ -2,7 +2,7 @@
 DNS Threat Monitor - Main Orchestrator
 
 This is the main orchestrator that connects all system components:
-- Capture Layer (dnsmasq + tshark)
+- Capture Layer (Technitium + tshark)
 - Parser Layer (input parsing + blacklist)
 - Detection Layer (rules + threat detector)
 - Database Layer (storage + queries)
