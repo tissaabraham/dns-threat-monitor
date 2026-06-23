@@ -1,10 +1,11 @@
 #!/bin/bash
 
-# Start dnsmasq in the background
-dnsmasq --no-daemon &
+# Start Technitium DNS Server in the background
+cd /opt/technitium-dns
+mono TechnitiumDNS.exe --StartService &
 
-# Give dnsmasq a moment to start up and create the log file
-sleep 2
+# Give Technitium DNS a moment to start up
+sleep 5
 
 # Start the dashboard
 python dashboard/app.py &

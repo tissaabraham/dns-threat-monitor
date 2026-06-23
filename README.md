@@ -128,7 +128,7 @@ If one or more of these conditions are detected, the system assigns a higher thr
 
 - **Python** - Core system implementation
 - **Packet Capture Tools** - tcpdump / tshark for DNS traffic capture
-- **DNS Forwarding Service** - dnsmasq or unbound
+- **DNS Forwarding Service** - Technitium DNS Server (cross-platform) or DNS Masq (Linux lightweight alternative)
 - **SQLite Database** - For storing DNS logs and alerts
 - **Flask Web Framework** - Web-based dashboard for visualization
 - **Docker** - Containerized deployment and testing
@@ -160,6 +160,13 @@ Parsed DNS metadata and alert information are stored in a structured SQLite data
 ## Deployment
 
 The system is containerised using Docker to ensure portability and consistent runtime environments. Testing is conducted using virtual machines to simulate realistic network activity.
+
+### DNS Server Options
+
+- **Technitium DNS Server**: Recommended for cross-platform deployments and Docker demos. Provides modern DNS protocol support (DoH/DoT/DoQ) and comprehensive logging.
+- **DNS Masq**: Lightweight alternative for Linux-only deployments where minimal resource usage is preferred. Requires platform-specific configuration.
+
+The Docker demo uses Technitium DNS Server for consistent cross-platform functionality.
 
 ## Limitations and Future Considerations
 

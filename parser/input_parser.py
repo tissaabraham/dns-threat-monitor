@@ -12,6 +12,16 @@ DNSMASQ_PATTERN = re.compile(
     r"(?P<value>[\w.\-:]+)"
 )
 
+# Technitium DNS log pattern - searches the input for matching format.
+TECHNITIUM_PATTERN = re.compile(
+    r"(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+"
+    r"(?P<event_type>Query|Response)\s+"
+    r"(?P<query_type>[A-Z]+)\s+"
+    r"(?P<domain>[\w.\-]+)\s+"
+    r"(?P<client>[\d.]+)\s+"
+    r"(?P<response_code>[\w]+)?"
+)
+
 #Parse dnsmasq log line into a DnsEvent.
 def parse_dnsmasq_line(line: str) -> DnsEvent | None:
 
@@ -40,6 +50,51 @@ def parse_dnsmasq_line(line: str) -> DnsEvent | None:
     return DnsEvent(
         timestamp=timestamp,
         source_ip="" if is_response else value,
+        domain=normalise_domain(groups["domain"]),
+        query_type=groups["query_type"] or "UNKNOWN",
+        is_response=is_response,
+        response_code=response_code,
+        resolved_ips=resolved_ips
+    )
+
+def parse_technitium_line(line: str) -> DnsEvent | None:
+    """
+    Parse Technitium DNS log line into a DnsEvent.
+    """
+    match = TECHNITIUM_PATTERN.match(line)
+    if not match:
+        return None
+
+    groups = match.groupdict()
+    
+    try:
+        timestamp = datetime.strptime(
+            groups['timestamp'], "%Y-%m-%d %H:%M:%S"
+        ).replace(tzinfo=timezone.utc)
+    except ValueError:
+        timestamp = datetime.now(timezone.utc)  # fallback if format differs
+
+    is_response = groups["event_type"] == "Response"
+    response_code_str = groups.get("response_code", "NOERROR")
+    
+    # Map response codes to numeric values
+    response_code_map = {
+        "NOERROR": 0,
+        "NXDOMAIN": 3,
+        "SERVFAIL": 2,
+        "REFUSED": 5
+    }
+    response_code = response_code_map.get(response_code_str, 0)
+    
+    # For queries, source is the client IP. For responses, we don't track source in this simple implementation
+    source_ip = "" if is_response else groups["client"]
+    
+    # Simple resolved IP handling - in a real implementation, you'd parse the actual response data
+    resolved_ips = [] if not is_response else []
+
+    return DnsEvent(
+        timestamp=timestamp,
+        source_ip=source_ip,
         domain=normalise_domain(groups["domain"]),
         query_type=groups["query_type"] or "UNKNOWN",
         is_response=is_response,
@@ -90,6 +145,8 @@ def parse_line(source: str, line: str) -> DnsEvent | None:
     """
     if source == "dnsmasq":
         return parse_dnsmasq_line(line)
+    elif source == "technitium":
+        return parse_technitium_line(line)
     elif source == "tshark":
         return parse_tshark_line(line)
     return None

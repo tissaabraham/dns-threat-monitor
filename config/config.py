@@ -44,8 +44,9 @@ class Config:
     # Network card to capture traffic from
     CAPTURE_INTERFACE = os.getenv("NETWORK_INTERFACE", "eth0")  # Change this to match the network interface
 
-    # DNS log file path (for dnsmasq)
+    # DNS log file paths
     DNSMASQ_LOG_PATH = os.getenv("DNSMASQ_LOG_PATH", "/var/log/dnsmasq.log")
+    TECHNITIUM_LOG_PATH = os.getenv("TECHNITIUM_LOG_PATH", "/var/log/technitium-dns.log")
 
     # ============================================================================
     # DETECTION CONFIGURATION
