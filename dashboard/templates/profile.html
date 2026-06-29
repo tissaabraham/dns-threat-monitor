@@ -203,14 +203,13 @@
     <div class="row">
         <!-- Sidebar -->
         <nav class="col-md-2 d-none d-md-block sidebar py-4">
-            <div class="logo ps-3"><span>Shield</span>DNS Threat Monitor</div>
+            <div class="logo ps-3"><span><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="#4fc3f7" viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg></span>DNS Threat Monitor</div>
             <ul class="nav flex-column ps-3">
                 <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Live Monitoring</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Active Threats</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Logs</a></li>
+                <li class="nav-item"><a class="nav-link" href="/live-monitoring">Live Monitoring</a></li>
+                <li class="nav-item"><a class="nav-link" href="/active-threats">Active Threats</a></li>
+                <li class="nav-item"><a class="nav-link" href="/logs">Logs</a></li>
                 <li class="nav-item"><a class="nav-link active" href="/profile">User</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Help</a></li>
             </ul>
         </nav>
         <!-- Main content area -->
@@ -222,6 +221,7 @@
                         <span style="font-size:1.5rem;">&#128100;</span>
                         <span class="fw-semibold" id="topbar-username">Username</span>
                     </a>
+                    <a href="/logout" class="btn btn-sm btn-outline-secondary">Logout</a>
                 </div>
             </div>
 
@@ -236,7 +236,7 @@
                         <div class="mb-3 row">
                             <label for="username" class="col-sm-3 col-form-label">Username</label>
                             <div class="col-sm-6">
-                                <input type="text" class="form-control" id="username" placeholder="Enter username">
+                                <input type="text" class="form-control" id="username" placeholder="Enter username" readonly>
                             </div>
                         </div>
                         <div class="mb-3 row">
@@ -431,40 +431,50 @@
 
     document.getElementById('confirm-password').addEventListener('input', updateMatchBadge);
 
-    /* ── Load saved username into topbar and form ──── */
-    (function() {
-        const saved = localStorage.getItem('dtm_username');
-        if (saved) {
-            document.getElementById('topbar-username').textContent = saved;
-            document.getElementById('username').value = saved;
+    /* ── Load profile details from the server ───────── */
+    (async function() {
+        try {
+            const res = await fetch('/api/me');
+            if (!res.ok) return;
+            const data = await res.json();
+            document.getElementById('username').value = data.username || '';
+            document.getElementById('fullname').value = data.full_name || '';
+            document.getElementById('email').value = data.email || '';
+            document.getElementById('topbar-username').textContent = data.username || 'User';
+        } catch (err) {
+            /* leave fields blank if the request fails */
         }
-        const savedFull = localStorage.getItem('dtm_fullname');
-        if (savedFull) document.getElementById('fullname').value = savedFull;
-        const savedEmail = localStorage.getItem('dtm_email');
-        if (savedEmail) document.getElementById('email').value = savedEmail;
     })();
 
     /* ── Profile Form Submit ─────────────────────────── */
-    document.getElementById('profile-form').addEventListener('submit', function(e) {
+    document.getElementById('profile-form').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const username = document.getElementById('username').value.trim();
         const fullname = document.getElementById('fullname').value.trim();
         const email    = document.getElementById('email').value.trim();
+        const errEl    = document.getElementById('profile-error');
         showMsg('profile-success', false);
         showMsg('profile-error', false);
-        if (!username || !fullname || !email) {
+        try {
+            const res = await fetch('/api/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ full_name: fullname, email: email })
+            });
+            const data = await res.json();
+            if (res.ok && data.ok) {
+                showMsg('profile-success', true);
+            } else {
+                errEl.textContent = data.error || 'Could not save profile.';
+                showMsg('profile-error', true);
+            }
+        } catch (err) {
+            errEl.textContent = 'Could not reach the server.';
             showMsg('profile-error', true);
-            return;
         }
-        localStorage.setItem('dtm_username', username);
-        localStorage.setItem('dtm_fullname', fullname);
-        localStorage.setItem('dtm_email', email);
-        document.getElementById('topbar-username').textContent = username;
-        showMsg('profile-success', true);
     });
 
     /* ── Password Form Submit ────────────────────────── */
-    document.getElementById('password-form').addEventListener('submit', function(e) {
+    document.getElementById('password-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const current = document.getElementById('current-password').value;
         const newPw   = document.getElementById('new-password').value;
@@ -485,6 +495,23 @@
         const score = getStrength(newPw);
         if (score < 3) {
             errEl.textContent = 'Password is too weak. Please meet the requirements below.';
+            showMsg('password-error', true);
+            return;
+        }
+        try {
+            const res = await fetch('/api/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ current_password: current, new_password: newPw })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) {
+                errEl.textContent = data.error || 'Could not update password.';
+                showMsg('password-error', true);
+                return;
+            }
+        } catch (err) {
+            errEl.textContent = 'Could not reach the server.';
             showMsg('password-error', true);
             return;
         }

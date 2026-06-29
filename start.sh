@@ -1,18 +1,25 @@
 #!/bin/bash
+set -e
 
-# Start dnsmasq in the background
-dnsmasq --no-daemon &
+# Create necessary directories
+mkdir -p /var/log/technitium/dns/queries
+mkdir -p /app/data
 
-# Give dnsmasq a moment to start up and create the log file
+# Export Python path
+export PYTHONPATH=/app
+
+# Start the dashboard in the background
+echo "Starting DNS Threat Monitor Dashboard..."
+python /app/dashboard/app.py &
+DASHBOARD_PID=$!
+
+# Give the dashboard a moment to start
 sleep 2
 
-# Creates the db file if it doesn't already exist (Stops the compose from crashing if not there)
-touch /app/dns_threat_monitor.db &
+# Start the monitoring system in the foreground
+echo "Starting DNS monitoring system..."
+python /app/main.py &
+MONITOR_PID=$!
 
-# Start the dashboard
-python dashboard/app.py &
-
-# Start the Python monitoring system
-# pythonpath tells python where to find the modules, fixed errors caused by files in different folders.
-# Now that main is just a pointer, we can use it as the entry point for everything.
-PYTHONPATH=/app python /app/main.py
+# Wait for both processes
+wait $DASHBOARD_PID $MONITOR_PID

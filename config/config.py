@@ -28,7 +28,7 @@ class Config:
     PROJECT_ROOT = Path(__file__).parent.parent
 
     # Where the database file is stored
-    DATABASE_FILE = PROJECT_ROOT / os.getenv("DB_FILENAME", "dns_threat_monitor.db")
+    DATABASE_FILE = PROJECT_ROOT / "data" / os.getenv("DB_FILENAME", "dns_threat_monitor.db")
 
     # File with known malicious domains
     THREATS_FILE = PROJECT_ROOT / os.getenv("THREATS_FILENAME", "threats.txt")
@@ -44,8 +44,9 @@ class Config:
     # Network card to capture traffic from
     CAPTURE_INTERFACE = os.getenv("NETWORK_INTERFACE", "eth0")  # Change this to match the network interface
 
-    # DNS log file path (for dnsmasq)
+    # DNS log file paths
     DNSMASQ_LOG_PATH = os.getenv("DNSMASQ_LOG_PATH", "/var/log/dnsmasq.log")
+    TECHNITIUM_LOG_PATH = os.getenv("TECHNITIUM_LOG_PATH", "/var/log/technitium/dns/queries")
 
     # ============================================================================
     # DETECTION CONFIGURATION
@@ -92,6 +93,20 @@ class Config:
 
     # How often dashboard updates
     DASHBOARD_UPDATE_INTERVAL = int(os.getenv("DASHBOARD_UPDATE_INTERVAL", "30"))
+
+    # ============================================================================
+    # DASHBOARD AUTHENTICATION
+    # ============================================================================
+
+    # Flask session signing key. Set a strong random value in .env for production.
+    SECRET_KEY = os.getenv("SECRET_KEY", "dns-monitor-secret-key-change-in-production")
+
+    # A default admin account is created on first run if no users exist yet.
+    DEFAULT_ADMIN_USERNAME = os.getenv("DEFAULT_ADMIN_USERNAME", "admin")
+    DEFAULT_ADMIN_PASSWORD = os.getenv("DEFAULT_ADMIN_PASSWORD", "admin")
+
+    # Whether the public registration page is enabled.
+    ENABLE_REGISTRATION = os.getenv("ENABLE_REGISTRATION", "true").lower() == "true"
 
     # ============================================================================
     # PERFORMANCE CONFIGURATION

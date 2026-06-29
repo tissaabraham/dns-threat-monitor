@@ -74,7 +74,7 @@ def stream_tshark(interface: str = INTERFACE):
         "-e", "dns.qry.name",   #Name of domain being queried
         "-e", "dns.qry.type",   #Type of DNS query
         "-e", "dns.flags.response", #Is it a response?
-        "-e", "dns.resp.code",  #What's the response code?
+        "-e", "dns.flags.rcode",  #What's the response code?
         "-e", "dns.a",           #What's the IPV4 address?
         "-E", "separator=|"      # separate fields with a "|"
     ]

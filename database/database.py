@@ -1,9 +1,11 @@
 import sqlite3
 import os
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional, List
 import json
+from werkzeug.security import generate_password_hash, check_password_hash
 from .dataModels import Alert, DnsEvent, ThreatCacheEntry
 
 
@@ -13,18 +15,22 @@ class DatabaseManager:
     Handles initialization, CRUD operations, and queries for the dashboard.
     """
 
-    DB_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dns_threat_monitor.db')
+    DB_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'dns_threat_monitor.db')
 
     def __init__(self):
         """Initialize database connection and create tables if they don't exist."""
         self.connection = None
+        self._lock = threading.Lock()
         self.initialize_database()
 
     def initialize_database(self):
         """Creates all tables and indexes if they don't already exist."""
         try:
-            self.connection = sqlite3.connect(self.DB_FILE, check_same_thread=False)
+            # Wait up to 30 seconds for a lock instead of failing right away.
+            self.connection = sqlite3.connect(self.DB_FILE, check_same_thread=False, timeout=30)
             self.connection.row_factory = sqlite3.Row
+            # WAL mode lets the monitor write while the dashboard reads.
+            self.connection.execute('PRAGMA journal_mode=WAL')
             cursor = self.connection.cursor()
 
             # Create dns_logs table
@@ -121,6 +127,19 @@ class DatabaseManager:
                 )
             ''')
 
+            # Dashboard user accounts table for login and profile data
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    full_name TEXT,
+                    email TEXT,
+                    password_hash TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    last_login TEXT
+                )
+            ''')
+
             # Create indexes for faster queries
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_dns_logs_timestamp ON dns_logs(timestamp)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_dns_logs_domain ON dns_logs(domain)')
@@ -130,6 +149,7 @@ class DatabaseManager:
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_dns_log_ips_dns_log_id ON dns_log_ips(dns_log_id)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_threat_feeds_name ON threat_feeds(name)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_rules_name ON rules(name)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)')
 
             self.connection.commit()
             print(f"Database initialized successfully at {self.DB_FILE}")
@@ -140,48 +160,49 @@ class DatabaseManager:
 
     def store_dns_log(self, event: DnsEvent, threat_score: int = 0) -> int:
         """Store a DNS event in dns_logs. Returns the new row ID."""
-        try:
-            cursor = self.connection.cursor()
-            resolved_ips_json = json.dumps(event.resolved_ips)
-            
-            cursor.execute('''
-                INSERT INTO dns_logs 
-                (timestamp, source_ip, domain, query_type, is_response, response_code, resolved_ips, threat_score)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                event.timestamp.isoformat(),
-                event.source_ip,
-                event.domain,
-                event.query_type,
-                int(event.is_response),
-                event.response_code,
-                resolved_ips_json,
-                threat_score
-            ))
-            
-            dns_log_id = cursor.lastrowid
-
-            # If resolved IPs are present, insert normalized rows into dns_log_ips
+        with self._lock:
             try:
-                resolved_ips = event.resolved_ips or []
-                if isinstance(resolved_ips, str):
-                    # Defensive: if a single string was provided
-                    resolved_ips = [resolved_ips]
+                cursor = self.connection.cursor()
+                resolved_ips_json = json.dumps(event.resolved_ips)
+                
+                cursor.execute('''
+                    INSERT INTO dns_logs 
+                    (timestamp, source_ip, domain, query_type, is_response, response_code, resolved_ips, threat_score)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    event.timestamp.isoformat(),
+                    event.source_ip,
+                    event.domain,
+                    event.query_type,
+                    int(event.is_response),
+                    event.response_code,
+                    resolved_ips_json,
+                    threat_score
+                ))
+                
+                dns_log_id = cursor.lastrowid
 
-                for ip in resolved_ips:
-                    cursor.execute('''
-                        INSERT INTO dns_log_ips (dns_log_id, ip_address) VALUES (?, ?)
-                    ''', (dns_log_id, ip))
-            except sqlite3.Error:
-                # Non-fatal: continue even if dns_log_ips insert fails
-                pass
+                # If resolved IPs are present, insert normalized rows into dns_log_ips
+                try:
+                    resolved_ips = event.resolved_ips or []
+                    if isinstance(resolved_ips, str):
+                        # Defensive: if a single string was provided
+                        resolved_ips = [resolved_ips]
 
-            self.connection.commit()
-            return dns_log_id
+                    for ip in resolved_ips:
+                        cursor.execute('''
+                            INSERT INTO dns_log_ips (dns_log_id, ip_address) VALUES (?, ?)
+                        ''', (dns_log_id, ip))
+                except sqlite3.Error:
+                    # Non-fatal: continue even if dns_log_ips insert fails
+                    pass
 
-        except sqlite3.Error as e:
-            print(f"Error storing DNS log: {e}")
-            raise
+                self.connection.commit()
+                return dns_log_id
+
+            except sqlite3.Error as e:
+                print(f"Error storing DNS log: {e}")
+                raise
 
     def get_recent_dns_logs(self, hours: int = 24, limit: int = 100) -> List[dict]:
         """Fetch the most recent DNS log entries within the given time window."""
@@ -207,63 +228,65 @@ class DatabaseManager:
     def store_alert(self, alert: Alert, dns_log_id: int) -> int:
         """Save an alert linked to dns_log_id. Returns the alert ID.
         The Alert object comes from Stephen's Detector class."""
-        try:
-            cursor = self.connection.cursor()
-            rules_json = json.dumps(alert.rules_triggered)
-            
-            cursor.execute('''
-                INSERT INTO alerts 
-                (dns_log_id, timestamp, source_ip, domain, severity, threat_score, rules_triggered, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                dns_log_id,
-                alert.timestamp.isoformat(),
-                alert.source_ip,
-                alert.domain,
-                alert.severity,
-                alert.score,
-                rules_json,
-                alert.status
-            ))
-            
-            self.connection.commit()
-            alert_id = cursor.lastrowid
-            
-            # Record the initial status in alert history
-            self._record_status_change(alert_id, None, alert.status, "Alert created")
-            
-            return alert_id
-            
-        except sqlite3.Error as e:
-            print(f"Error storing alert: {e}")
-            raise
+        with self._lock:
+            try:
+                cursor = self.connection.cursor()
+                rules_json = json.dumps(alert.rules_triggered)
+                
+                cursor.execute('''
+                    INSERT INTO alerts 
+                    (dns_log_id, timestamp, source_ip, domain, severity, threat_score, rules_triggered, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    dns_log_id,
+                    alert.timestamp.isoformat(),
+                    alert.source_ip,
+                    alert.domain,
+                    alert.severity,
+                    alert.score,
+                    rules_json,
+                    alert.status
+                ))
+                
+                self.connection.commit()
+                alert_id = cursor.lastrowid
+                
+                # Record the initial status in alert history
+                self._record_status_change(alert_id, None, alert.status, "Alert created")
+                
+                return alert_id
+                
+            except sqlite3.Error as e:
+                print(f"Error storing alert: {e}")
+                raise
 
     def update_alert_status(self, alert_id: int, new_status: str, notes: str = None) -> bool:
         """Update an alert's status and log the change to alert_history."""
-        try:
-            cursor = self.connection.cursor()
-            
-            cursor.execute('SELECT status FROM alerts WHERE id = ?', (alert_id,))
-            result = cursor.fetchone()
-            
-            if not result:
-                print(f"Alert with ID {alert_id} not found")
-                return False
-            
-            old_status = result[0]
-            
-            cursor.execute('''
-                UPDATE alerts SET status = ? WHERE id = ?
-            ''', (new_status, alert_id))
+        with self._lock:
+            try:
+                cursor = self.connection.cursor()
+                
+                cursor.execute('SELECT status FROM alerts WHERE id = ?', (alert_id,))
+                result = cursor.fetchone()
+                
+                if not result:
+                    print(f"Alert with ID {alert_id} not found")
+                    return False
+                
+                old_status = result[0]
+                
+                cursor.execute('''
+                    UPDATE alerts SET status = ? WHERE id = ?
+                ''', (new_status, alert_id))
 
-            self._record_status_change(alert_id, old_status, new_status, notes)
-            
-            self.connection.commit()
-            return True
-            
-        except sqlite3.Error as e:
-            print(f"Error updating alert status: {e}")
-            raise
+                self._record_status_change(alert_id, old_status, new_status, notes)
+                
+                self.connection.commit()
+                return True
+                
+            except sqlite3.Error as e:
+                print(f"Error updating alert status: {e}")
+                raise
 
     def _record_status_change(self, alert_id: int, old_status: Optional[str], new_status: str, notes: str = None):
         """Write a row to alert_history recording the status transition."""
@@ -474,6 +497,121 @@ class DatabaseManager:
             
         except sqlite3.Error as e:
             print(f"Error searching alerts: {e}")
+            raise
+
+    def create_user(self, username: str, password: str,
+                    full_name: str = None, email: str = None) -> int:
+        """Create a new user with a hashed password. Returns the new user ID.
+        Raises sqlite3.IntegrityError if the username already exists."""
+        with self._lock:
+            try:
+                cursor = self.connection.cursor()
+                # Store the hash, never the raw password.
+                cursor.execute('''
+                    INSERT INTO users (username, full_name, email, password_hash, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    username,
+                    full_name,
+                    email,
+                    generate_password_hash(password),
+                    datetime.now(timezone.utc).isoformat()
+                ))
+                self.connection.commit()
+                return cursor.lastrowid
+            except sqlite3.IntegrityError:
+                raise
+            except sqlite3.Error as e:
+                print(f"Error creating user: {e}")
+                raise
+
+    def get_user_by_username(self, username: str) -> Optional[dict]:
+        """Return the user row for a username, or None if not found."""
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+        except sqlite3.Error as e:
+            print(f"Error retrieving user: {e}")
+            raise
+
+    def get_user_by_id(self, user_id: int) -> Optional[dict]:
+        """Return the user row for an id, or None if not found."""
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+        except sqlite3.Error as e:
+            print(f"Error retrieving user: {e}")
+            raise
+
+    def verify_user(self, username: str, password: str) -> Optional[dict]:
+        """Check a username and password. Returns the user row on success, else None.
+        Updates last_login on success."""
+        # Compare the given password against the stored hash.
+        user = self.get_user_by_username(username)
+        if not user or not check_password_hash(user['password_hash'], password):
+            return None
+        with self._lock:
+            try:
+                cursor = self.connection.cursor()
+                # Record the time of this successful login.
+                cursor.execute(
+                    'UPDATE users SET last_login = ? WHERE id = ?',
+                    (datetime.now(timezone.utc).isoformat(), user['id'])
+                )
+                self.connection.commit()
+            except sqlite3.Error as e:
+                print(f"Error updating last_login: {e}")
+        return user
+
+    def update_password(self, user_id: int, current_password: str, new_password: str) -> bool:
+        """Verify the current password and set a new one. Returns False if the
+        current password is wrong or the user does not exist."""
+        # Only allow the change if the current password is correct.
+        user = self.get_user_by_id(user_id)
+        if not user or not check_password_hash(user['password_hash'], current_password):
+            return False
+        with self._lock:
+            try:
+                cursor = self.connection.cursor()
+                cursor.execute(
+                    'UPDATE users SET password_hash = ? WHERE id = ?',
+                    (generate_password_hash(new_password), user_id)
+                )
+                self.connection.commit()
+                return True
+            except sqlite3.Error as e:
+                print(f"Error updating password: {e}")
+                raise
+
+    def update_profile(self, user_id: int, full_name: str = None, email: str = None) -> bool:
+        """Update a user's full name and email. Returns False if the user does not exist."""
+        if not self.get_user_by_id(user_id):
+            return False
+        with self._lock:
+            try:
+                cursor = self.connection.cursor()
+                cursor.execute(
+                    'UPDATE users SET full_name = ?, email = ? WHERE id = ?',
+                    (full_name, email, user_id)
+                )
+                self.connection.commit()
+                return True
+            except sqlite3.Error as e:
+                print(f"Error updating profile: {e}")
+                raise
+
+    def count_users(self) -> int:
+        """Return the total number of registered users."""
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute('SELECT COUNT(*) FROM users')
+            return cursor.fetchone()[0]
+        except sqlite3.Error as e:
+            print(f"Error counting users: {e}")
             raise
 
     def close(self):

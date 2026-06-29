@@ -12,6 +12,19 @@ DNSMASQ_PATTERN = re.compile(
     r"(?P<value>[\w.\-:]+)"
 )
 
+# Technitium DNS log pattern - searches the input for matching format.
+# Actual format: [2026-06-29 18:49:35 UTC] [127.0.0.1:12345] [UDP] QNAME: example.com; QTYPE: A; QCLASS: IN; RCODE: NoError; ANSWER: [1.2.3.4]
+TECHNITIUM_PATTERN = re.compile(
+    r"\[(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (?:UTC|Local)\]\s+"
+    r"\[(?P<client>[\d.:a-fA-F]+):\d+\]\s+"
+    r"\[[A-Z]+\]\s+"
+    r"QNAME:\s+(?P<domain>[\w.\-]+);\s+"
+    r"QTYPE:\s+(?P<query_type>[A-Z]+);\s+"
+    r"QCLASS:\s+\w+;\s+"
+    r"RCODE:\s+(?P<response_code>\w+);\s+"
+    r"ANSWER:\s+\[(?P<answer>[^\]]*)?\]"
+)
+
 #Parse dnsmasq log line into a DnsEvent.
 def parse_dnsmasq_line(line: str) -> DnsEvent | None:
 
@@ -43,6 +56,49 @@ def parse_dnsmasq_line(line: str) -> DnsEvent | None:
         domain=normalise_domain(groups["domain"]),
         query_type=groups["query_type"] or "UNKNOWN",
         is_response=is_response,
+        response_code=response_code,
+        resolved_ips=resolved_ips
+    )
+
+def parse_technitium_line(line: str) -> DnsEvent | None:
+    """
+    Parse Technitium DNS log line into a DnsEvent.
+    """
+    match = TECHNITIUM_PATTERN.match(line)
+    if not match:
+        return None
+
+    groups = match.groupdict()
+
+    try:
+        timestamp = datetime.strptime(
+            groups['timestamp'], "%Y-%m-%d %H:%M:%S"
+        ).replace(tzinfo=timezone.utc)
+    except ValueError:
+        timestamp = datetime.now(timezone.utc)
+
+    response_code_map = {
+        "NoError": 0,
+        "NxDomain": 3,
+        "ServFail": 2,
+        "Refused": 5,
+        "NOERROR": 0,
+        "NXDOMAIN": 3,
+        "SERVFAIL": 2,
+        "REFUSED": 5,
+    }
+    response_code = response_code_map.get(groups.get("response_code", ""), 0)
+    is_nxdomain = response_code == 3
+
+    answer_raw = (groups.get("answer") or "").strip()
+    resolved_ips = [a.strip() for a in answer_raw.split(",") if a.strip() and not is_nxdomain]
+
+    return DnsEvent(
+        timestamp=timestamp,
+        source_ip=groups["client"],
+        domain=normalise_domain(groups["domain"]),
+        query_type=groups["query_type"] or "UNKNOWN",
+        is_response=True,
         response_code=response_code,
         resolved_ips=resolved_ips
     )
@@ -90,6 +146,8 @@ def parse_line(source: str, line: str) -> DnsEvent | None:
     """
     if source == "dnsmasq":
         return parse_dnsmasq_line(line)
+    elif source == "technitium":
+        return parse_technitium_line(line)
     elif source == "tshark":
         return parse_tshark_line(line)
     return None

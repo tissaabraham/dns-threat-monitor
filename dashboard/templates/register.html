@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account – DNS Threat Monitor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: #16213e;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 0;
+        }
+        .auth-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+            padding: 36px 40px;
+            width: 100%;
+            max-width: 440px;
+        }
+        .auth-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #16213e;
+            margin-bottom: 28px;
+        }
+        .auth-card label { color: #495057; font-weight: 500; }
+        .btn-signin {
+            background: #16213e;
+            color: #fff;
+            font-weight: 500;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            width: 100%;
+        }
+        .btn-signin:hover { background: #233554; color: #fff; }
+        .auth-error {
+            display: none;
+            background: #fde8e8;
+            color: #9b1c1c;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .auth-footer { text-align: center; margin-top: 18px; font-size: 0.9rem; }
+        .hint { font-size: 0.8rem; color: #6c757d; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <div class="auth-logo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#4fc3f7" viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+            DNS Threat Monitor
+        </div>
+        <div id="register-error" class="auth-error"></div>
+        <form id="register-form">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" autocomplete="username" autofocus>
+            </div>
+            <div class="mb-3">
+                <label for="full_name" class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="full_name" autocomplete="name">
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" autocomplete="email">
+            </div>
+            <div class="mb-4">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" autocomplete="new-password">
+                <div class="hint">At least 8 characters.</div>
+            </div>
+            <button type="submit" class="btn-signin">Create Account</button>
+        </form>
+        <div class="auth-footer">
+            Already have an account? <a href="/login">Sign in</a>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('register-form');
+        const errorEl = document.getElementById('register-error');
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            errorEl.style.display = 'none';
+            const payload = {
+                username: document.getElementById('username').value.trim(),
+                full_name: document.getElementById('full_name').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                password: document.getElementById('password').value
+            };
+
+            if (!payload.username || !payload.password) {
+                errorEl.textContent = 'Username and password are required.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            if (payload.password.length < 8) {
+                errorEl.textContent = 'Password must be at least 8 characters.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            // Create the account, then follow the redirect on success.
+            try {
+                const res = await fetch('/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok && data.ok) {
+                    window.location.href = data.redirect || '/';
+                } else {
+                    errorEl.textContent = data.error || 'Registration failed.';
+                    errorEl.style.display = 'block';
+                }
+            } catch (err) {
+                errorEl.textContent = 'Could not reach the server.';
+                errorEl.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
