@@ -1,11 +1,13 @@
 from flask import Flask, render_template, jsonify, request, session
 import sys
 import os
-from config.config import Config
 
 # Add parent folder to imports
+# Needs to be above the next two or it'll cause crashes
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
+
+from config.config import Config
 from database.database import DatabaseManager
 
 # Set up Flask app
