@@ -1,0 +1,10 @@
+FROM technitium/dns-server:latest
+
+RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /var/log/technitium/dns/queries && chmod 777 /var/log/technitium/dns/queries
+
+COPY technitium-init.sh /technitium-init.sh
+RUN chmod +x /technitium-init.sh
+
+ENTRYPOINT ["/technitium-init.sh"]

@@ -1,44 +1,42 @@
 services:
+  technitium:
+    build:
+      context: .
+      dockerfile: Dockerfile.technitium
+    container_name: technitium_dns
+    restart: unless-stopped
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+      - "5380:5380"
+    volumes:
+      - ./data/technitium:/etc/dns
+      - ./logs/technitium:/var/log/technitium
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - TZ=UTC
+
   monitor:
     build: .
     container_name: dns_monitor
-
-    # Needed for network monitoring
-    network_mode: host        # Shares the host network so dnsmasq can see traffic
-    cap_add:
-      - NET_ADMIN             # Allows tshark to capture packets
-      - NET_RAW               # Allows raw socket access
-
-    # Keeps the container running even if it crashes
     restart: unless-stopped
-
-# Yeah so unfortunately since host mode stops port mapping, just going to comment out.
-    # The dashboard will still default to host:5000
-  #  ports:
-  #    - "127.0.0.1:5000:5000" # Port the dashboard is running on.
-    # When using WSL, having issues with port being exposed correctly....
-    # Html loads though, so it should be okay.
-    # Using Powershell to force the port to be publically available is good.
-
+    ports:
+      - "5000:5000"
     volumes:
-      # Mount the database file outside the container so data will persist even if the container is rebuilt
-      - ./dns_threat_monitor.db:/app/dns_threat_monitor.db
-
-      # Mount threats.txt so we can edit it without rebuilding everything
+      - ./data:/app/data
       - ./threats.txt:/app/threats.txt
-
-    # Show logs in real time
+      - ./logs/technitium:/var/log/technitium
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     tty: true
-
-    # New health check specifically makes a HTTPS request to the dashboard to see if it responds
-        # Also slightly better in that it's not just checking if a port is open.
-
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000')" ]
       interval: 30s
       timeout: 10s
       retries: 3
-
-    # Gets the environment variables to be used throughout
     env_file:
       - .env
+    depends_on:
+      - technitium

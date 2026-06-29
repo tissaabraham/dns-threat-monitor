@@ -28,7 +28,7 @@ class Config:
     PROJECT_ROOT = Path(__file__).parent.parent
 
     # Where the database file is stored
-    DATABASE_FILE = PROJECT_ROOT / os.getenv("DB_FILENAME", "dns_threat_monitor.db")
+    DATABASE_FILE = PROJECT_ROOT / "data" / os.getenv("DB_FILENAME", "dns_threat_monitor.db")
 
     # File with known malicious domains
     THREATS_FILE = PROJECT_ROOT / os.getenv("THREATS_FILENAME", "threats.txt")
@@ -46,7 +46,7 @@ class Config:
 
     # DNS log file paths
     DNSMASQ_LOG_PATH = os.getenv("DNSMASQ_LOG_PATH", "/var/log/dnsmasq.log")
-    TECHNITIUM_LOG_PATH = os.getenv("TECHNITIUM_LOG_PATH", "/var/log/technitium-dns.log")
+    TECHNITIUM_LOG_PATH = os.getenv("TECHNITIUM_LOG_PATH", "/var/log/technitium/dns/queries")
 
     # ============================================================================
     # DETECTION CONFIGURATION

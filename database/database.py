@@ -15,7 +15,7 @@ class DatabaseManager:
     Handles initialization, CRUD operations, and queries for the dashboard.
     """
 
-    DB_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dns_threat_monitor.db')
+    DB_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'dns_threat_monitor.db')
 
     def __init__(self):
         """Initialize database connection and create tables if they don't exist."""

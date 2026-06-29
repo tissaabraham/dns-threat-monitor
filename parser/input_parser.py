@@ -13,13 +13,16 @@ DNSMASQ_PATTERN = re.compile(
 )
 
 # Technitium DNS log pattern - searches the input for matching format.
+# Actual format: [2026-06-29 18:49:35 UTC] [127.0.0.1:12345] [UDP] QNAME: example.com; QTYPE: A; QCLASS: IN; RCODE: NoError; ANSWER: [1.2.3.4]
 TECHNITIUM_PATTERN = re.compile(
-    r"(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+"
-    r"(?P<event_type>Query|Response)\s+"
-    r"(?P<query_type>[A-Z]+)\s+"
-    r"(?P<domain>[\w.\-]+)\s+"
-    r"(?P<client>[\d.]+)\s+"
-    r"(?P<response_code>[\w]+)?"
+    r"\[(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (?:UTC|Local)\]\s+"
+    r"\[(?P<client>[\d.:a-fA-F]+):\d+\]\s+"
+    r"\[[A-Z]+\]\s+"
+    r"QNAME:\s+(?P<domain>[\w.\-]+);\s+"
+    r"QTYPE:\s+(?P<query_type>[A-Z]+);\s+"
+    r"QCLASS:\s+\w+;\s+"
+    r"RCODE:\s+(?P<response_code>\w+);\s+"
+    r"ANSWER:\s+\[(?P<answer>[^\]]*)?\]"
 )
 
 #Parse dnsmasq log line into a DnsEvent.
@@ -66,38 +69,36 @@ def parse_technitium_line(line: str) -> DnsEvent | None:
         return None
 
     groups = match.groupdict()
-    
+
     try:
         timestamp = datetime.strptime(
             groups['timestamp'], "%Y-%m-%d %H:%M:%S"
         ).replace(tzinfo=timezone.utc)
     except ValueError:
-        timestamp = datetime.now(timezone.utc)  # fallback if format differs
+        timestamp = datetime.now(timezone.utc)
 
-    is_response = groups["event_type"] == "Response"
-    response_code_str = groups.get("response_code", "NOERROR")
-    
-    # Map response codes to numeric values
     response_code_map = {
+        "NoError": 0,
+        "NxDomain": 3,
+        "ServFail": 2,
+        "Refused": 5,
         "NOERROR": 0,
         "NXDOMAIN": 3,
         "SERVFAIL": 2,
-        "REFUSED": 5
+        "REFUSED": 5,
     }
-    response_code = response_code_map.get(response_code_str, 0)
-    
-    # For queries, source is the client IP. For responses, we don't track source in this simple implementation
-    source_ip = "" if is_response else groups["client"]
-    
-    # Simple resolved IP handling - in a real implementation, you'd parse the actual response data
-    resolved_ips = [] if not is_response else []
+    response_code = response_code_map.get(groups.get("response_code", ""), 0)
+    is_nxdomain = response_code == 3
+
+    answer_raw = (groups.get("answer") or "").strip()
+    resolved_ips = [a.strip() for a in answer_raw.split(",") if a.strip() and not is_nxdomain]
 
     return DnsEvent(
         timestamp=timestamp,
-        source_ip=source_ip,
+        source_ip=groups["client"],
         domain=normalise_domain(groups["domain"]),
         query_type=groups["query_type"] or "UNKNOWN",
-        is_response=is_response,
+        is_response=True,
         response_code=response_code,
         resolved_ips=resolved_ips
     )
