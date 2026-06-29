@@ -4,6 +4,7 @@ import sqlite3
 import sys
 import os
 
+# Needs to be above the next two or it'll cause crashes
 # Add the project root to the path before importing project modules.
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 

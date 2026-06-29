@@ -7,6 +7,9 @@ mono TechnitiumDNS.exe --StartService &
 # Give Technitium DNS a moment to start up
 sleep 5
 
+# Creates the db file if it doesn't already exist (Stops the compose from crashing if not there)
+touch /app/dns_threat_monitor.db &
+
 # Start the dashboard
 python dashboard/app.py &
 

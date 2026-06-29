@@ -22,7 +22,7 @@ services:
 
     volumes:
       # Mount the database file outside the container so data will persist even if the container is rebuilt
-      - .dns_threat_monitor.db:/app/dns_threat_monitor.db
+      - ./dns_threat_monitor.db:/app/dns_threat_monitor.db
 
       # Mount threats.txt so we can edit it without rebuilding everything
       - ./threats.txt:/app/threats.txt
