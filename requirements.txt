@@ -2,4 +2,5 @@
 
 requests    #(Need for the blacklist to work)
 flask
+flask-limiter
 python-dotenv

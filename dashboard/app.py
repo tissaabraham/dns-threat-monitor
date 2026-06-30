@@ -1,4 +1,6 @@
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from functools import wraps
 import sqlite3
 import sys
@@ -14,6 +16,9 @@ from database.database import DatabaseManager
 # Set up Flask app
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = Config.SECRET_KEY
+
+# Rate limiter: keyed by remote IP to block brute-force login attempts.
+limiter = Limiter(get_remote_address, app=app, default_limits=[])
 
 # SESSION_COOKIE_HTTPONLY: browser JS cannot read the session cookie, blocks XSS cookie theft.
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -61,6 +66,8 @@ def login_required(view):
 # --- Authentication routes ---
 
 @app.route('/login', methods=['GET', 'POST'])
+# Block more than 10 POST attempts per IP per minute to slow down brute-force attacks.
+@limiter.limit('10 per minute', methods=['POST'], error_message='Too many login attempts. Try again in a minute.')
 def login():
     """Show the login form and handle login submissions."""
     if request.method == 'GET':
@@ -74,7 +81,8 @@ def login():
     user = db.verify_user(username, password)
     if not user:
         return jsonify({'error': 'Invalid username or password'}), 401
-    # Remember who is logged in for later requests.
+    # Regenerate the session ID after login to prevent session fixation.
+    session.clear()
     session['user_id'] = user['id']
     session['username'] = user['username']
     return jsonify({'ok': True, 'redirect': url_for('dashboard')})
@@ -319,6 +327,12 @@ def api_change_password():
         return jsonify({'ok': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.errorhandler(429)
+def rate_limited(e):
+    """Return a JSON error for rate-limited requests."""
+    return jsonify({'error': str(e.description)}), 429
 
 
 @app.errorhandler(404)

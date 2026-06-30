@@ -98,12 +98,11 @@ class Logger:
     def log_system_info(cls):
         """Log system information for debugging."""
         logger = cls.get_logger()
-        logger.info("=== System Information ===")
+        logger.info("System Information")
         logger.info(f"Project Root: {Config.PROJECT_ROOT}")
         logger.info(f"Database: {Config.DATABASE_FILE}")
         logger.info(f"Processing Threads: {Config.PROCESSING_THREADS}")
         logger.info(f"Queue Size: {Config.QUEUE_SIZE}")
-        logger.info("===========================")
 
 
 def get_logger(name: str = None) -> logging.Logger:

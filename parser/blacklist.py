@@ -99,7 +99,15 @@ class Blacklist:
 
     #Check if a domain (or its root) is on the blacklist.
     def is_malicious(self, domain: str) -> bool:
+        # Strip local DNS search suffixes added by the network resolver
+        for suffix in (".home", ".local", ".lan", ".internal"):
+            if domain.endswith(suffix):
+                domain = domain[: -len(suffix)]
+                break
         root = get_root_domain(domain)
+        # Never flag whitelisted domains
+        if domain in WHITELISTED_DOMAINS or root in WHITELISTED_DOMAINS:
+            return False
         with self._lock:
             return domain in self.domains or root in self.domains
 
