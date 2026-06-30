@@ -20,9 +20,7 @@ class Config:
     Centralizes all system configuration parameters.
     """
 
-    # ============================================================================
     # PATHS AND FILES
-    # ============================================================================
 
     # Get the main project folder
     PROJECT_ROOT = Path(__file__).parent.parent
@@ -37,9 +35,7 @@ class Config:
     LOG_FILE = PROJECT_ROOT / 'logs' / os.getenv("LOG_FILENAME", "dns_monitor.log")
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO") # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-    # ============================================================================
     # CAPTURE CONFIGURATION
-    # ============================================================================
 
     # Network card to capture traffic from
     CAPTURE_INTERFACE = os.getenv("NETWORK_INTERFACE", "eth0")  # Change this to match the network interface
@@ -48,9 +44,7 @@ class Config:
     DNSMASQ_LOG_PATH = os.getenv("DNSMASQ_LOG_PATH", "/var/log/dnsmasq.log")
     TECHNITIUM_LOG_PATH = os.getenv("TECHNITIUM_LOG_PATH", "/var/log/technitium/dns/queries")
 
-    # ============================================================================
     # DETECTION CONFIGURATION
-    # ============================================================================
 
     # Rule thresholds
     HIGH_QUERY_RATE_LIMIT = int(os.getenv("QUERY_RATE_LIMIT", "50"))  # queries per minute
@@ -65,9 +59,7 @@ class Config:
     SUSPICIOUS_TLDS = {".xyz", ".tk", ".top", ".pw", ".cc", ".su", ".ml", ".site", ".shop"}
 
 
-    # ============================================================================
     # BLACKLIST CONFIGURATION
-    # ============================================================================
 
     # Whether to update blacklist from internet
     ENABLE_REMOTE_BLACKLIST = os.getenv("ENABLE_REMOTE_BLACKLIST", "true").lower() == "true"    #Has to be converted to a boolean
@@ -82,9 +74,7 @@ class Config:
     BLACKLIST_REFRESH_URLHAUS = int(os.getenv("URLHAUS_REFRESH_HOURS", "24"))
     BLACKLIST_REFRESH_OPENPHISH = int(os.getenv("OPENPHISH_REFRESH_HOURS", "12"))
 
-    # ============================================================================
     # DASHBOARD CONFIGURATION
-    # ============================================================================
 
     # Web server settings
     DASHBOARD_HOST = os.getenv("DASHBOARD_HOST", "0.0.0.0")
@@ -94,9 +84,7 @@ class Config:
     # How often dashboard updates
     DASHBOARD_UPDATE_INTERVAL = int(os.getenv("DASHBOARD_UPDATE_INTERVAL", "30"))
 
-    # ============================================================================
     # DASHBOARD AUTHENTICATION
-    # ============================================================================
 
     # Flask session signing key. Set a strong random value in .env for production.
     SECRET_KEY = os.getenv("SECRET_KEY", "dns-monitor-secret-key-change-in-production")
@@ -108,9 +96,7 @@ class Config:
     # Whether the public registration page is enabled.
     ENABLE_REGISTRATION = os.getenv("ENABLE_REGISTRATION", "true").lower() == "true"
 
-    # ============================================================================
     # PERFORMANCE CONFIGURATION
-    # ============================================================================
 
     # Number of processing threads
     PROCESSING_THREADS = int(os.getenv("PROCESSING_THREADS", "2"))
@@ -125,9 +111,7 @@ class Config:
     # Default time range for queries
     DEFAULT_TIME_RANGE_HOURS = int(os.getenv("DEFAULT_TIME_RANGE_HOURS", "24"))
 
-    # ============================================================================
     # SYSTEM LIMITS
-    # ============================================================================
 
     # System resource limits
     MAX_CPU_PERCENT = float(os.getenv("MAX_CPU_PERCENT", "30.0"))
@@ -136,9 +120,7 @@ class Config:
     # Max time to detect threats
     MAX_DETECTION_TIME = float(os.getenv("MAX_DETECTION_TIME", "3.0"))
 
-    # ============================================================================
     # DEVELOPMENT/TESTING CONFIGURATION
-    # ============================================================================
 
     # Use fake data for testing
     TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
@@ -146,9 +128,7 @@ class Config:
     # File with test data
     TEST_DATA_FILE = PROJECT_ROOT / 'tests' / os.getenv("TEST_DATA_FILE", "test_dns_data.txt")
 
-    # ============================================================================
     # UTILITY METHODS
-    # ============================================================================
 
     @classmethod
     def get_database_path(cls) -> str:
@@ -203,7 +183,7 @@ class Config:
     @classmethod
     def print_configuration(cls):
         """Print current configuration for debugging."""
-        print("=== DNS Threat Monitor Configuration ===")
+        print("DNS Threat Monitor Configuration")
         print(f"Project Root: {cls.PROJECT_ROOT}")
         print(f"Database: {cls.DATABASE_FILE}")
         print(f"Threats File: {cls.THREATS_FILE}")
@@ -212,7 +192,6 @@ class Config:
         print(f"Queue Size: {cls.QUEUE_SIZE}")
         print(f"Remote Blacklist: {cls.ENABLE_REMOTE_BLACKLIST}")
         print(f"Test Mode: {cls.TEST_MODE}")
-        print("========================================")
 
 
 # Initialize configuration on import

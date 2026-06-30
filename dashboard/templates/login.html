@@ -53,6 +53,35 @@
             font-size: 0.9rem;
         }
         .auth-footer { text-align: center; margin-top: 18px; font-size: 0.9rem; }
+        /* Password input with toggle button */
+        .pw-wrapper {
+            display: flex;
+            align-items: center;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+            background: #fff;
+            overflow: hidden;
+        }
+        .pw-wrapper:focus-within { border-color: #86b7fe; box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25); }
+        .pw-wrapper .form-control {
+            border: none;
+            box-shadow: none;
+            flex: 1;
+        }
+        .pw-wrapper .form-control:focus { box-shadow: none; }
+        .pw-toggle {
+            background: none;
+            border: none;
+            padding: 0 10px;
+            cursor: pointer;
+            color: #495057;
+            font-size: 1rem;
+            flex-shrink: 0;
+            user-select: none;
+        }
+        .pw-toggle:focus { outline: none; }
+        /* Dims the button while the login request is in flight. */
+        .btn-signin:disabled { opacity: 0.7; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -69,9 +98,14 @@
             </div>
             <div class="mb-4">
                 <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" autocomplete="current-password">
+                <div class="pw-wrapper">
+                    <input type="password" class="form-control" id="password" autocomplete="current-password">
+                    <button type="button" class="pw-toggle" id="pw-toggle" aria-label="Show password">
+                        <span id="eye-icon">&#128065;</span>
+                    </button>
+                </div>
             </div>
-            <button type="submit" class="btn-signin">Sign In</button>
+            <button type="submit" class="btn-signin" id="btn-signin">Sign In</button>
         </form>
         {% if registration_enabled %}
         <div class="auth-footer">
@@ -83,12 +117,35 @@
     <script>
         const form = document.getElementById('login-form');
         const errorEl = document.getElementById('login-error');
+        const submitBtn = document.getElementById('btn-signin');
+
+        // Toggle the password field between plain text and hidden, and swap the eye icon.
+        document.getElementById('pw-toggle').addEventListener('click', function() {
+            const pwInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon');
+            const showing = pwInput.type === 'text';
+            pwInput.type = showing ? 'password' : 'text';
+            this.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+            // &#128065; = eye, &#128064; = eye with slash (hidden).
+            eyeIcon.innerHTML = showing ? '&#128065;' : '&#128064;';
+        });
 
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             errorEl.style.display = 'none';
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
+
+            // Catch empty fields before hitting the server.
+            if (!username || !password) {
+                errorEl.textContent = 'Username and password are required.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            // Disable the button while the request is running to stop double-submits.
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in…';
 
             // Send the credentials to the server and follow the redirect on success.
             try {
@@ -103,10 +160,14 @@
                 } else {
                     errorEl.textContent = data.error || 'Login failed.';
                     errorEl.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Sign In';
                 }
             } catch (err) {
                 errorEl.textContent = 'Could not reach the server.';
                 errorEl.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign In';
             }
         });
     </script>

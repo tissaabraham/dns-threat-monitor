@@ -1,9 +1,10 @@
 # Basic tests for data models, parser, rules, DB, and a simple integration check.
 # Run with: python -m pytest tests/
 
-import pytest
-import sys
 import os
+import sys
+import tempfile
+import pytest
 from datetime import datetime, timezone
 
 # Add project root to path for imports
@@ -126,19 +127,30 @@ class TestRuleEngine:
 class TestDatabaseManager:
     """Test database operations."""
 
+    def setup_method(self):
+        """Create a temporary database for each test."""
+        self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
+        self.temp_db.close()
+        original_db_file = DatabaseManager.DB_FILE
+        DatabaseManager.DB_FILE = self.temp_db.name
+        self.db = DatabaseManager()
+        DatabaseManager.DB_FILE = original_db_file
+
+    def teardown_method(self):
+        """Close and remove the temporary database."""
+        if self.db:
+            self.db.close()
+        try:
+            os.unlink(self.temp_db.name)
+        except OSError:
+            pass
+
     def test_database_initialization(self):
         """Test database manager initialization."""
-        # Use in-memory database for testing
-        db = DatabaseManager()
-        assert db.connection is not None
-
-        # Clean up
-        db.close()
+        assert self.db.connection is not None
 
     def test_store_and_retrieve_dns_log(self):
         """Test storing and retrieving DNS logs."""
-        db = DatabaseManager()
-
         event = DnsEvent(
             timestamp=datetime.now(timezone.utc),
             source_ip="192.168.1.100",
@@ -150,11 +162,11 @@ class TestDatabaseManager:
         )
 
         # Store event
-        log_id = db.store_dns_log(event, threat_score=10)
+        log_id = self.db.store_dns_log(event, threat_score=10)
         assert log_id > 0
 
         # Retrieve recent logs
-        logs = db.get_recent_dns_logs(hours=1, limit=10)
+        logs = self.db.get_recent_dns_logs(hours=1, limit=10)
         assert len(logs) > 0
 
         # Find our test log
@@ -162,12 +174,28 @@ class TestDatabaseManager:
         assert test_log is not None
         assert test_log['threat_score'] == 10
 
-        db.close()
-
 
 # Integration test
 class TestSystemIntegration:
     """Test system component integration."""
+
+    def setup_method(self):
+        """Create a temporary database for each test."""
+        self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
+        self.temp_db.close()
+        original_db_file = DatabaseManager.DB_FILE
+        DatabaseManager.DB_FILE = self.temp_db.name
+        self.db = DatabaseManager()
+        DatabaseManager.DB_FILE = original_db_file
+
+    def teardown_method(self):
+        """Close and remove the temporary database."""
+        if self.db:
+            self.db.close()
+        try:
+            os.unlink(self.temp_db.name)
+        except OSError:
+            pass
 
     def test_full_pipeline(self):
         """Test the complete processing pipeline."""
@@ -175,7 +203,6 @@ class TestSystemIntegration:
         # For now, just test component interactions
 
         # Create components
-        db = DatabaseManager()
         rule_engine = RuleEngine()
 
         # Create test event
@@ -193,10 +220,8 @@ class TestSystemIntegration:
         assert "suspicious_tld" in rules_triggered
 
         # Store in database
-        log_id = db.store_dns_log(event, threat_score=20)
+        log_id = self.db.store_dns_log(event, threat_score=20)
         assert log_id > 0
-
-        db.close()
 
 
 if __name__ == "__main__":
