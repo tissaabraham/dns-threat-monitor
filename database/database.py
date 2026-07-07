@@ -327,6 +327,23 @@ class DatabaseManager:
             print(f"Error retrieving active alerts: {e}")
             raise
 
+    def get_all_alerts(self, status: str = None, limit: int = 500) -> List[dict]:
+        """Return all alerts, optionally filtered by a single status."""
+        try:
+            cursor = self.connection.cursor()
+            query = 'SELECT * FROM alerts'
+            params: List = []
+            if status:
+                query += ' WHERE status = ?'
+                params.append(status)
+            query += ' ORDER BY timestamp DESC LIMIT ?'
+            params.append(limit)
+            cursor.execute(query, params)
+            return [self._process_alert_row(dict(row)) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print(f"Error retrieving all alerts: {e}")
+            raise
+
     def get_alert_history(self, alert_id: int) -> List[dict]:
         """Returns all status-change entries for a given alert, oldest first."""
         try:
