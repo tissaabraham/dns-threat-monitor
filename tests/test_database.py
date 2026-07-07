@@ -190,6 +190,64 @@ class TestDatabaseManager:
         assert history[1]['new_status'] == "acknowledged"
         assert history[2]['new_status'] == "resolved"
 
+    def test_get_all_alerts(self):
+        """Test retrieving all alerts with optional status filter."""
+        # Create two alerts
+        event1 = DnsEvent(
+            timestamp=datetime.now(timezone.utc),
+            source_ip="192.168.1.100",
+            domain="all-alerts-1.com",
+            query_type="A",
+            is_response=False,
+            response_code=0
+        )
+        dns_log_id1 = self.db.store_dns_log(event1, threat_score=20)
+        alert1 = Alert(
+            timestamp=datetime.now(timezone.utc),
+            source_ip="192.168.1.100",
+            domain="all-alerts-1.com",
+            severity="Low",
+            score=40,
+            rules_triggered=["test_rule"]
+        )
+        alert_id1 = self.db.store_alert(alert1, dns_log_id1)
+        self.db.update_alert_status(alert_id1, "resolved", "Resolved alert")
+
+        event2 = DnsEvent(
+            timestamp=datetime.now(timezone.utc),
+            source_ip="192.168.1.101",
+            domain="all-alerts-2.com",
+            query_type="A",
+            is_response=False,
+            response_code=0
+        )
+        dns_log_id2 = self.db.store_dns_log(event2, threat_score=20)
+        alert2 = Alert(
+            timestamp=datetime.now(timezone.utc),
+            source_ip="192.168.1.101",
+            domain="all-alerts-2.com",
+            severity="Low",
+            score=40,
+            rules_triggered=["test_rule"]
+        )
+        self.db.store_alert(alert2, dns_log_id2)
+
+        # get_all_alerts returns every alert, including resolved ones.
+        all_alerts = self.db.get_all_alerts()
+        assert len(all_alerts) >= 2
+        domains = {a['domain'] for a in all_alerts}
+        assert "all-alerts-1.com" in domains
+        assert "all-alerts-2.com" in domains
+
+        # Filtering by status returns only matching alerts.
+        resolved_alerts = self.db.get_all_alerts(status="resolved")
+        assert all(a['status'] == "resolved" for a in resolved_alerts)
+        assert any(a['domain'] == "all-alerts-1.com" for a in resolved_alerts)
+
+        new_alerts = self.db.get_all_alerts(status="new")
+        assert all(a['status'] == "new" for a in new_alerts)
+        assert any(a['domain'] == "all-alerts-2.com" for a in new_alerts)
+
     def test_threat_cache_operations(self):
         """Test threat cache operations."""
         threat = ThreatCacheEntry(

@@ -20,9 +20,9 @@ COPY . .
 # Create log directories for Technitium
 RUN mkdir -p /var/log/technitium/dns && chmod 777 /var/log/technitium/dns
 
-# Copy the startup script
+# Copy the startup script and ensure Unix line endings
 COPY start.sh /start.sh
-RUN chmod +x /start.sh
+RUN sed -i 's/\r$//' /start.sh && chmod +x /start.sh
 
 # This is what runs when the container starts
 CMD ["/start.sh"]

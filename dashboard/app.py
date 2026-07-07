@@ -154,6 +154,12 @@ def active_threats():
     """Show active threats page."""
     return render_template('active_threats.html')
 
+@app.route('/all-threats')
+@login_required
+def all_threats():
+    """Show all threats page, including resolved and archived ones."""
+    return render_template('all_threats.html')
+
 @app.route('/logs')
 @login_required
 def logs():
@@ -232,6 +238,20 @@ def api_alerts():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/all-alerts')
+@login_required
+def api_all_alerts():
+    """Return every alert, optionally filtered by status."""
+    try:
+        status = request.args.get('status', '').strip() or None
+        valid_statuses = {'new', 'acknowledged', 'resolved', 'archived'}
+        if status and status not in valid_statuses:
+            return jsonify({'error': f'Invalid status. Must be one of: {sorted(valid_statuses)}'}), 400
+        alerts = db.get_all_alerts(status=status)
+        return jsonify(alerts)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/severity-distribution')
 @login_required
 def api_severity_distribution():
@@ -253,12 +273,21 @@ def api_severity_distribution():
 def api_update_alert_status(alert_id):
     """Update the status of an alert and record the change in history."""
     try:
+        # Read JSON body. Fall back to empty dict if body is missing or invalid.
         data = request.get_json(force=True) or {}
-        new_status = data.get('status', '').strip()
-        notes = data.get('notes', '').strip() or None
+
+        # Treat null values as empty strings so strip() does not fail.
+        # The frontend sends notes as null when the optional notes box is empty.
+        new_status = (data.get('status') or '').strip()
+        notes = (data.get('notes') or '').strip() or None
+
+        # Only accept known status values.
         valid_statuses = {'new', 'acknowledged', 'resolved', 'archived'}
         if new_status not in valid_statuses:
             return jsonify({'error': f'Invalid status. Must be one of: {sorted(valid_statuses)}'}), 400
+
+        # Save the new status to the database and write a history entry.
+        # The active threats page will show the updated status on its next refresh.
         success = db.update_alert_status(alert_id, new_status, notes)
         if not success:
             return jsonify({'error': 'Alert not found'}), 404
