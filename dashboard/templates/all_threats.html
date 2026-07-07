@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Alerts – DNS Threat Monitor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background: #f6f8fb; }
+        .sidebar {
+            background: #16213e;
+            min-height: 100vh;
+            color: #fff;
+        }
+        .sidebar .nav-link {
+            color: #bfc9da;
+            font-weight: 500;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .sidebar .nav-link.active, .sidebar .nav-link:hover {
+            background: #233554;
+            color: #fff;
+        }
+        .sidebar .logo {
+            font-size: 1.4rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin: 32px 0 24px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .topbar {
+            background: #fff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .content-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(22,33,62,0.06);
+            padding: 24px;
+            margin-top: 32px;
+            margin-bottom: 24px;
+        }
+        .footer {
+            text-align: center;
+            color: #bfc9da;
+            font-size: 0.95rem;
+            margin: 32px 0 0 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 d-none d-md-block sidebar py-4">
+            <div class="logo ps-3"><span><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="#4fc3f7" viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg></span>DNS Threat Monitor</div>
+            <ul class="nav flex-column ps-3">
+                <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/live-monitoring">Live Monitoring</a></li>
+                <li class="nav-item"><a class="nav-link" href="/active-threats">Active Threats</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/all-threats">All Alerts</a></li>
+                <li class="nav-item"><a class="nav-link" href="/logs">Logs</a></li>
+            </ul>
+        </nav>
+        <!-- Main -->
+        <main class="col-md-10 ms-sm-auto px-4">
+            <div class="topbar">
+                <div class="fs-5 fw-bold">All Alerts</div>
+                <div class="user">
+                    <div class="dropdown">
+                        <span class="dropdown-toggle text-dark fw-semibold d-flex align-items-center gap-2"
+                              data-bs-toggle="dropdown" aria-expanded="false" role="button" style="cursor:pointer;">
+                            <span style="font-size:1.5rem;">&#128100;</span>
+                            <span id="topbar-username">Username</span>
+                        </span>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><span class="dropdown-item-text fw-bold" id="dropdown-username">Username</span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/profile">My Profile</a></li>
+                            <li><a class="dropdown-item text-danger" href="#" id="logout-btn">&#8594; Log Out</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                    <div class="fs-6 fw-bold">All Alerts <span class="badge bg-secondary ms-2" id="threat-count">0</span></div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="text-muted small mb-0">Status:</label>
+                        <select id="status-filter" class="form-select form-select-sm" style="width:160px;" onchange="loadThreats()">
+                            <option value="">All</option>
+                            <option value="new">New</option>
+                            <option value="acknowledged">Acknowledged</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="archived">Archived</option>
+                        </select>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadThreats()">&#8635; Refresh</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Time</th>
+                                <th>Domain</th>
+                                <th>Severity</th>
+                                <th>Rules</th>
+                                <th>Score</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="threats-table-body">
+                            <tr><td colspan="7" class="text-center text-muted">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Status Update Modal -->
+            <div class="modal fade" id="statusModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Update Alert Status</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="status-alert-id">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">New Status</label>
+                                <select id="status-select" class="form-select">
+                                    <option value="new">New</option>
+                                    <option value="acknowledged">Acknowledged</option>
+                                    <option value="resolved">Resolved</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Notes <span class="text-muted fw-normal">(optional)</span></label>
+                                <textarea id="status-notes" class="form-control" rows="2" placeholder="Add a note about this change..."></textarea>
+                            </div>
+                            <div id="status-error" class="text-danger small d-none"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="saveStatus()">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Modal -->
+            <div class="modal fade" id="historyModal" tabindex="-1">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Alert History</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle">
+                                    <thead><tr><th>Time</th><th>From</th><th>To</th><th>Notes</th></tr></thead>
+                                    <tbody id="history-table-body"><tr><td colspan="4" class="text-center">Loading...</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer">© 2025 DNS Threat Monitor. All rights reserved.</div>
+        </main>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Converts untrusted values to safe text so browsers treat them as plain text, not HTML tags or scripts.
+    function esc(v) {
+        return String(v == null ? '-' : v)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); // replace chars that start HTML tags or attributes
+    }
+    // Wrapper around fetch that redirects to the login page if the session has expired (401).
+    function apiFetch(url, opts) {
+        return fetch(url, opts).then(function(r) {
+            if (r.status === 401) { window.location.href = '/login'; return Promise.reject('unauthenticated'); }
+            return r;
+        });
+    }
+    const severityBadges = {High:'danger', Medium:'warning', Low:'success'};
+    const statusBadges   = {new:'warning', acknowledged:'info', resolved:'success', archived:'secondary'};
+
+    function loadThreats() {
+        const status = document.getElementById('status-filter').value;
+        const url = status ? `/api/all-alerts?status=${encodeURIComponent(status)}` : '/api/all-alerts';
+        apiFetch(url).then(r=>r.json()).then(rows=>{
+            document.getElementById('threat-count').textContent = rows.length;
+            const html = rows.length
+                ? rows.map(a=>`<tr>
+                    <td>${a.timestamp ? new Date(a.timestamp).toLocaleString() : '-'}</td>
+                    <td>${esc(a.domain)}</td>
+                    <td><span class="badge bg-${severityBadges[a.severity]||'secondary'}">${esc(a.severity)}</span></td>
+                    <td>${esc(a.rule_name)}</td>
+                    <td>${a.score!=null ? esc(a.score) : '-'}</td>
+                    <td><span class="badge bg-${statusBadges[a.status]||'secondary'}">${esc(a.status)}</span></td>
+                    <td class="text-nowrap">
+                      <button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="openStatusModal(${Number(a.id)},'${esc(a.status)}')">Update</button>
+                      <button class="btn btn-sm btn-outline-secondary py-0" onclick="openHistoryModal(${Number(a.id)})">History</button>
+                    </td>
+                  </tr>`).join('')
+                : '<tr><td colspan="7" class="text-center text-muted">No alerts found</td></tr>';
+            document.getElementById('threats-table-body').innerHTML = html;
+        }).catch(()=>{
+            document.getElementById('threats-table-body').innerHTML='<tr><td colspan="7" class="text-center text-danger">Failed to load data</td></tr>';
+        });
+    }
+
+    function openStatusModal(alertId, currentStatus) {
+        document.getElementById('status-alert-id').value = alertId;
+        document.getElementById('status-select').value = currentStatus || 'new';
+        document.getElementById('status-notes').value = '';
+        document.getElementById('status-error').classList.add('d-none');
+        new bootstrap.Modal(document.getElementById('statusModal')).show();
+    }
+
+    function saveStatus() {
+        const alertId   = document.getElementById('status-alert-id').value;
+        const newStatus = document.getElementById('status-select').value;
+        const notes     = document.getElementById('status-notes').value.trim();
+        const errEl     = document.getElementById('status-error');
+        errEl.classList.add('d-none');
+        apiFetch(`/api/alerts/${alertId}/status`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({status: newStatus, notes: notes || null})
+        }).then(r=>r.json()).then(data=>{
+            if (data.error) { errEl.textContent = data.error; errEl.classList.remove('d-none'); return; }
+            bootstrap.Modal.getInstance(document.getElementById('statusModal')).hide();
+            loadThreats();
+        }).catch(()=>{
+            errEl.textContent = 'Request failed. Please try again.';
+            errEl.classList.remove('d-none');
+        });
+    }
+
+    function openHistoryModal(alertId) {
+        document.getElementById('history-table-body').innerHTML = '<tr><td colspan="4" class="text-center">Loading...</td></tr>';
+        new bootstrap.Modal(document.getElementById('historyModal')).show();
+        apiFetch(`/api/alerts/${alertId}/history`).then(r=>r.json()).then(rows=>{
+            const html = rows.length
+                ? rows.map(h=>`<tr>
+                    <td>${h.timestamp ? new Date(h.timestamp).toLocaleString() : '-'}</td>
+                    <td>${esc(h.old_status)}</td>
+                    <td>${esc(h.new_status)}</td>
+                    <td>${esc(h.notes)}</td>
+                  </tr>`).join('')
+                : '<tr><td colspan="4" class="text-center text-muted">No history recorded</td></tr>';
+            document.getElementById('history-table-body').innerHTML = html;
+        }).catch(()=>{
+            document.getElementById('history-table-body').innerHTML='<tr><td colspan="4" class="text-center text-danger">Failed to load history</td></tr>';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Show the logged-in user's name from the session.
+        apiFetch('/api/me').then(function(r) { return r.ok ? r.json() : null; }).then(function(u) {
+            if (!u) return;
+            document.getElementById('topbar-username').textContent = u.username || 'User';
+            document.getElementById('dropdown-username').textContent = u.username || 'User';
+        });
+        // Log Out ends the session on the server.
+        document.getElementById('logout-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = '/logout';
+        });
+        loadThreats();
+    });
+</script>
+</body>
+</html>
